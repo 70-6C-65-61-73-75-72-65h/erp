@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block head_title %}
+    {{ profile.user.username }} 
+{% endblock head_title %}
+
+{% block content %}
+
+<div class='col-sm-6 col-sm-offset-3'>
+    <div>
+        <h1>BIO</h1>
+        <br/>
+        {{ profile.get_markdown }}
+    </div>
+    <!-- TODO imagefield -->
+    <br/>
+    <small>Birth Date:  {{ profile.birth_date|date:'Y-m-d' }}</small>
+    <br/>
+    <small>Location:  {{ profile.location }}</small>
+    <br/>
+    <small>On site from:  {{ profile.user.date_joined|date:'Y-m-d' }}</small>
+    <br/>
+</div>
+
+{% if user.profile == profile %}
+    <hr/>
+    <p><a href="{{ profile.get_update_url }}" id="update_account"  class="btn btn-info" role="button">UPDATE ACCOUNT INFO</a></p>
+
+    <hr/>
+    <p><a href="{{ profile.get_password_reset }}" id="password_reset_start"  class="btn btn-info" role="button">PASSWORD RESET</a></p>
+
+    <hr/>
+    <p><a href="{{ profile.get_delete_url }}" id="delete_account"  class="btn btn-danger" role="button">DELETE ACCOUNT</a></p>
+
+{% endif %}
+{% endblock content %}

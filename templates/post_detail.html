@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+<!--  load urlify  -->
+{% load crispy_forms_tags %}
+
+
+{% block head_title %}
+{{ instance.title }} | {{ block.super }}
+{% endblock head_title %}
+
+
+ {% block post_detail_link %}
+  <li><a href='{{ instance.get_absolute_url }}'>{{ instance.title }}</a></li>
+  {% endblock %}
+
+
+
+{% block content %}
+<div class='col-sm-6 col-sm-offset-3'>
+    {% if instance.image %}
+    <img src='{{ instance.image.url }}' class='img-responsive' />
+    {% endif %} 
+<h1>{{ title }} <small>{{ instance.created }}</small></h1>
+
+<!-- {% if instance.read_time|time:"i" <= "01" %} < 1 minute {% else %}{{ instance.read_time|time:"i" }} minutes {% endif %} -->
+
+
+<p>Read time: {% if instance.read_time <= 1 %} < 1 Minute {% else %}{{ instance.read_time }} minutes {% endif %}</p>
+{% if instance.owner.username %}
+<p><a href="{{ instance.owner.profile.get_absolute_url }}">Author: {{ instance.owner.username }}</a></p>
+{% endif %}
+
+
+
+<!-- <p><div class="fb-like" data-href="{{ request.build_absolute_uri }}" data-layout="button_count" data-action="like" data-show-faces="true" data-share="true"></div> -->
+{% if request.user.is_authenticated %}
+<!-- <h1> User auth: {{ request.user }}</h1> -->
+  <hr/>
+  <!-- <p><a href="{{ instance.get_absolute_url }}" class="btn btn-primary" role="button">View</a></p>  -->
+  <p><a data-from-url='{{ request.get_full_path }}' data-to-url="{{ instance.get_update_like_link }}" onclick="update_like(this)" class="btn btn-primary" role="button">Like</a></p>
+  <p><a href="{{ instance.get_like_thread_link }}" class="btn btn-primary" role="button">Likes List</a></p>
+  <hr/>
+  {% if request.user == instance.owner %}
+    <p><a data-slug="{{ instance.slug }}" data-to-url="{{ instance.get_delete_url }}" data-detail='True' id="post_delete" onclick="delete_post(this)" class="btn btn-danger" role="button">DELETE</a></p>
+  {% endif %}
+{% endif %}
+<!-- </p> -->
+
+{% endblock content %}

@@ -1,0 +1,63 @@
+{% load staticfiles %}
+<!--DOCTYPE html -->
+<html>
+<head>
+<title>{% block head_title %}Social Network{% endblock head_title %}</title>
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+
+<!-- Optional theme -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">
+
+<link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css' >
+
+
+<link rel='stylesheet' href='{% static "css/base.css" %}' />
+
+
+{% block head_extra %} {% endblock head_extra %}
+</head>
+<body>
+
+<div class='container'> 
+    <ol class='breadcrumb'>
+        {% if request.user.is_authenticated %}
+        <li><a href='{{ request.user.profile.get_absolute_url }}'>Home</a></li>
+        {% endif %}
+        <li><a href='{% url "posts:list" %}'>Posts</a></li>
+        {% block post_detail_link %}
+        {% endblock %}
+
+        {% if not request.user.is_authenticated %}
+        <li class='pull-right'><a href='{% url "accounts:register" %}'>Register</a></li>
+        <li class='pull-right'><a href='{% url "accounts:login" %}'>Login</a></li>
+        {% else %}
+        <li class='pull-right'><a href='{% url "accounts:logout" %}'>Logout</a></li>
+        {% endif %}
+    </ol>
+{% block content %}{% endblock content %}
+</div>
+
+
+
+<!-- Latest compiled and minified JavaScript -->
+<script src="http://code.jquery.com/jquery-1.12.2.min.js"   integrity="sha256-lZFHibXzMHo3GGeehn1hudTAP3Sc0uKXBXAzHX1sjtk="   crossorigin="anonymous"></script>
+
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+
+<script src='https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.5/marked.min.js'></script>
+
+<script>
+  var csrf_token = '{{ csrf_token }}'
+</script>
+<!-- for post deletion for app posts -->
+<script src='{% static "js/delete_post.js" %}'></script>
+<script src='{% static "js/post_form.js" %}'></script>
+<script src='{% static "js/profile_form.js" %}'></script>
+</body>
+</html>
+
+
+
+

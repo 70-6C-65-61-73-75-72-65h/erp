@@ -1,0 +1,28 @@
+<!-- <p>Правый клик вызывает меню документа (добавлена проверка event.defaultPrevented)</p>
+<button id="elem">Правый клик вызывает меню кнопки</button>
+<button id="df">Правый клик вызывает меню </button>
+
+<script>
+  elem.oncontextmenu = function(event) {
+    event.preventDefault();
+    alert("Контекстное меню кнопки");
+  };
+
+//   df.oncontextmenu = function(event) {
+//     event.preventDefault(false);
+//   };
+
+  document.oncontextmenu = function(event) {
+    if (event.defaultPrevented) return;
+
+    event.preventDefault();
+    alert("Контекстное меню документа");
+  };
+</script> -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class='container'>
+  <h1>There is and getted from url info: {{ info }}</h1>
+</div>
+{% endblock content %}

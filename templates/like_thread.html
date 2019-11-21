@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+
+
+<div class='col-sm-6 col-sm-offset-3'>
+    <h1>{{ title }}</h1>
+
+<hr/>
+<h3>Total number of likes: {{num_likes}}</h3>
+<hr/>
+
+<form method='GET' action='' class='row'>
+        <div class='col-sm-6'>
+            <div class='input-group'>
+                <input class='form-control' type='text' name='q' placeholder='Search user' value='{{ request.GET.q }}'/>
+                <span class='input-group-btn'>
+                    <!-- <input class='btn btn-default' type='submit' value='Search' /> -->
+                    <button class='btn btn-default' type='submit'>Search <i class="fa fa-search"></i></button>
+                </span>
+            </div>
+        </div>
+</form>
+
+
+{% for user_like in users_who_liked %}
+<div class="row">
+  <div class="col-sm-12">
+        <a href="{{ user_like.profile.get_absolute_url }}">{{ user_like.username }}</a>
+  </div>
+<hr/>
+</div>
+{% endfor %}
+
+
+<div class="pagination">
+    <span class="step-links">
+        {% if users_who_liked.has_previous %}
+            <a href="?{{ page_request_var }}={{ users_who_liked.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">previous</a>
+        {% endif %}
+
+        <span class="current">
+            Page {{ users_who_liked.number }} of {{ users_who_liked.paginator.num_pages }}.
+        </span>
+
+        {% if users_who_liked.has_next %}
+            <a href="?{{ page_request_var }}={{ users_who_liked.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">next</a>
+        {% endif %}
+    </span>
+</div>
+
+
+
+
+</div>
+
+{% endblock content %}
