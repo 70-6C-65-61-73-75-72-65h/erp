@@ -3,7 +3,7 @@ import time
 import os
 
 import pickle
-from get_ph_data import read_apt_matrix, read_apt_names_matrix, collect_data  # without a key
+from get_ph_data import read_apt_matrix, read_apt_names_matrix, collect_data, read_apt_routes  # without a key
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # doesnt worx with meters
 
@@ -265,6 +265,110 @@ def read_uprgated_routes():
         data = pickle.load(f)
     return data
 
+
+
+def write_routes_duration_descending(data):
+    with open((BASE_DIR+r'\diplom\GoogleMaps\for_algs\routes_duration_descending.pickle'), 'wb') as f:
+        pickle.dump(data, f)
+
+def read_routes_duration_descending():
+    with open((BASE_DIR+r'\diplom\GoogleMaps\for_algs\routes_duration_descending.pickle'), 'rb') as f:
+        data = pickle.load(f)
+    return data
+
+
+def write_routes_from_vendor_duration_descending(data):
+    with open((BASE_DIR+r'\diplom\GoogleMaps\for_algs\routes_from_vendor_duration_descending.pickle'), 'wb') as f:
+        pickle.dump(data, f)
+
+def read_routes_from_vendor_duration_descending():
+    with open((BASE_DIR+r'\diplom\GoogleMaps\for_algs\routes_from_vendor_duration_descending.pickle'), 'rb') as f:
+        data = pickle.load(f)
+    return data
+
+
+# for PC using in future
+def set_routes_from_minimum_dur_to_max():
+    routes = read_uprgated_routes()
+    routes.sort(key=lambda x: x[0]["duration"], reverse = True)
+    write_routes_duration_descending(routes)
+    # r_routes = read_routes_duration_descending()
+    # list(map(print, r_routes))
+    # return routes[:11]
+
+def set_routes_from_minimum_dur_to_max_from_vendor(vend_addr): # 44 только роута будет
+    routes = [r for r in read_uprgated_routes() if r[0]['start_address']==vend_addr]
+    routes.sort(key=lambda x: x[0]["duration"], reverse = True)
+    write_routes_from_vendor_duration_descending(routes)
+
+
+# list(map(print, first))
+# print('\n\n')
+# list(map(print, last))
+
+
+
+
+# /\/\ Very big Bag - that addresses only for outside pharmacies ( for 1 in town ) is implemented \\ moreover in drow_graph only outter phs is drawed
+def get_ph_addresses():
+    """ 45 pharms, cause we get first 44 start_address and last 1 end_address
+    there are all (45*(45-1)/2 = 990 routes) will be checked (until get nessesary start_address and end_address)
+
+    вместо этого всего можно было просто сделать:
+
+    all_routes = read_apt_routes()
+    addrs = set([route["routes"][0]['legs'][0]["start_address"] for route in all_routes])
+    addrs.add(all_routes[-1]["routes"][0]['legs'][0]['end_address'])
+
+    но нам нужен порядок адрессов одинаковый всегда т.к. нужно получать адресс вендора удобно:
+    vendor -> start_address = "Bulʹvar Oleksandriysʹkyy, 95, Bila Tserkva, Kyivs'ka oblast, Ukraine, 09100" always read_apt_routes()[0]
+    """
+    all_routes = read_apt_routes()
+    addrs = []
+    for ind, route in enumerate(all_routes):
+        checked_addr = route["routes"][0]['legs'][0]["start_address"]
+        if checked_addr not in addrs:
+            addrs.append(checked_addr)
+        if ind == len(all_routes) - 1:
+            addrs.append(route["routes"][0]['legs'][0]["end_address"])
+    return addrs[1:] # cause 0 is for Vendor
+
+
+def get_distributor():
+    # print(read_apt_routes()[0]["routes"][0]['legs'][0]["start_address"])
+    organisation = "O.L.KAR. ФАРМ-СЕРВИС"
+    return organisation, read_apt_routes()[0]["routes"][0]['legs'][0]["start_address"]
+
+# print(get_distributor())
+
+def get_route_time_to_wh(addr1, addr2): # get time for that route
+    """ can be vendor or pharmacy from which takes products (if its wph have soon_expire=False)"""
+
+    # route = [r[0] for r in read_uprgated_routes() if r[0]["start_address"]==addr1 and r[0]["end_address"]==addr2][0]
+    route = None
+    for r in read_uprgated_routes():
+        if r[0]["start_address"]==addr1 and r[0]["end_address"]==addr2 or r[0]["start_address"]==addr2 and r[0]["end_address"]==addr1 :
+            route = r[0]
+    return route["duration"]
+
+
+# print(get_route_time_to_wh("Bulʹvar Oleksandriysʹkyy, 95, Bila Tserkva, Kyivs'ka oblast, Ukraine, 09100", "Nezalezhnosti Blvd, 11, Brovary, Kyivs'ka oblast, Ukraine, 07400"))
+
+def get_route_distance_to_wh(addr1, addr2): # get time for that route
+    """ can be vendor or pharmacy from which takes products (if its wph have soon_expire=False)"""
+    # import algs
+    route = None
+    for r in read_uprgated_routes():
+        if r[0]["start_address"]==addr1 and r[0]["end_address"]==addr2 or r[0]["start_address"]==addr2 and r[0]["end_address"]==addr1 :
+            route = r[0]
+    return route["distance"]
+
+# print(get_route_distance_to_wh("Bulʹvar Oleksandriysʹkyy, 95, Bila Tserkva, Kyivs'ka oblast, Ukraine, 09100", "Nezalezhnosti Blvd, 11, Brovary, Kyivs'ka oblast, Ukraine, 07400"))
+
+
+
+
+
 #TODO by got names in improvement change routes and write in upgrated_routes_outside
 
 
@@ -284,7 +388,50 @@ def read_uprgated_routes():
 
 
 ##### there just address getting for erp sys with spec alg
-pre_dei(read_apt_matrix(), {})
-read_uprgated_routes()
-pre_flo(read_apt_matrix(), {})
-read_uprgated_routes()
+# pre_dei(read_apt_matrix(), {})
+# read_uprgated_routes()
+# pre_flo(read_apt_matrix(), {})
+# read_uprgated_routes()
+
+
+
+
+# get max from vendor to wh !!!! 
+
+# first11 = read_routes_duration_descending()[:11] # ph_addrs
+# veh_start_addr = "Kapushanska St, 19, Uzhhorod, Zakarpats'ka oblast, Ukraine, 88000"
+# vendor_addr = "Bulʹvar Oleksandriysʹkyy, 95, Bila Tserkva, Kyivs'ka oblast, Ukraine, 09100"
+# all_time = []
+# all_time.append(get_route_time_to_wh(veh_start_addr, vendor_addr))
+# for i in first11:
+#     all_time.append(get_route_time_to_wh(veh_start_addr, vendor_addr)) 
+#     i["duration"]
+# vendor_addr = "Bulʹvar Oleksandriysʹkyy, 95, Bila Tserkva, Kyivs'ka oblast, Ukraine, 09100"
+# set_routes_from_minimum_dur_to_max_from_vendor(vendor_addr)
+
+
+# first11 = read_routes_from_vendor_duration_descending()[:11]
+# veh_start_addr = "Kapushanska St, 19, Uzhhorod, Zakarpats'ka oblast, Ukraine, 88000"
+# vendor_addr = "Bulʹvar Oleksandriysʹkyy, 95, Bila Tserkva, Kyivs'ka oblast, Ukraine, 09100"
+# all_time = []
+# all_time.append(get_route_time_to_wh(veh_start_addr, vendor_addr))
+# for i in first11:
+#     all_time.append(i[0]["duration"]) # from vend
+#     all_time.append(i[0]["duration"]) # to vend
+
+
+
+
+
+# first4 = read_routes_from_vendor_duration_descending()[:4]
+# veh_start_addr = "Kapushanska St, 19, Uzhhorod, Zakarpats'ka oblast, Ukraine, 88000"
+# vendor_addr = "Bulʹvar Oleksandriysʹkyy, 95, Bila Tserkva, Kyivs'ka oblast, Ukraine, 09100"
+# all_time = []
+# all_time.append(get_route_time_to_wh(veh_start_addr, vendor_addr))
+# for i in first4:
+#     all_time.append(i[0]["duration"]) # from vend
+#     all_time.append(i[0]["duration"]) # to vend
+
+# print((sum(all_time)/60/60/24)*1.15) # 10 дней максимум по доставке может быть, для 4 машин \\\\\ 4 дня максимум по доставке может быть, для 11 машин ceil(4.59) = 5
+
+# del all_time

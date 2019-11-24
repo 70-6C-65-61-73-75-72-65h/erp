@@ -27,18 +27,18 @@ class WorkerForm(forms.ModelForm):
                 ('', 'Select the kind'),
                 ('pharmacist', 'pharmacist'), #First one is the value of select option and second is the displayed value in option
                 ('HR', 'HR'),
-                ('accounting_manager', 'accounting_manager'),
+                ('accounting_manager', 'accounting_manager'), #  достаточно 1-го на все предприятие, ведь система сама все балансы показывает
                 ('director', 'director'),
-                ('forecast_manager', 'forecast_manager'),
-                ('cleaner', 'cleaner'),
+                # ('forecast_manager', 'forecast_manager'), #  -------- не нужен, ведь система сама делает
+                ('cleaner', 'cleaner'), 
                 ('loader', 'loader'),
                 ('driver', 'driver'),
-                ('storekeeper_manager', 'storekeeper_manager'),
-                ('storekeeper', 'storekeeper'),
-                ('sys_admin', 'sys_admin'),
-                ('supply_chain_manager', 'supply_chain_manager'),
+                # ('storekeeper_manager', 'storekeeper_manager'), #  -------- не нужен, так как нет склада своего
+                # ('storekeeper', 'storekeeper'), #  -------- не нужен, так как нет склада своего, а за размещение в аптеке отвечают pharmacist и loader
+                ('sys_admin', 'sys_admin'), #  2 на систему (посменно)
+                # ('supply_chain_manager', 'supply_chain_manager'), #  -------- не нужен, ведь система сама делает
                 )
-         widgets = {
+        widgets = {
             'kind': forms.Select(choices=KIND_CHOICES, attrs={'class': 'form-control'}),
         }
 

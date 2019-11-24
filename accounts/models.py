@@ -13,7 +13,7 @@ from decimal import Decimal as D
 
 from django.core.exceptions import FieldDoesNotExist
 
-from simulation.models import Address
+from mixins.models import Address, MyDateField
 
 # Create your models here.
 
@@ -21,7 +21,6 @@ from simulation.models import Address
 class Profile(models.Model): # fields
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     bio = models.TextField(max_length=500, blank=True)
-    address = models.OneToOneField(Address, on_delete=models.CASCADE, related_name='profile')
     # location = models.CharField(max_length=30, blank=True)
     birth_date = models.DateField(null=True, blank=True)
     slug = models.SlugField(unique=True) # unigue url must be
@@ -32,8 +31,11 @@ class Profile(models.Model): # fields
     #     height_field="height_field")
     # height_field = models.IntegerField(default=0)
     # width_field = models.IntegerField(default=0) 
+    # bank_acc = models.OneToOneField("BankAccount", on_delete=models.CASCADE, related_name='profile')
 
 
+    # how to add bank_acc to client or some_who
+    bank_acc = models.CharField(max_length=16, blank=True)
     # def decor_role_changing(self, func):
     #     def inner(self, *args, **kwargs):
     #         # args - 
@@ -50,19 +52,19 @@ class Profile(models.Model): # fields
         self.save()
         # self.user.groups.save() ?????
  
-    def role_to_vendor(self, organisation):
+    def role_to_vendor(self, organisation, address):
         try:
             assert self.client is not None
             self.client.delete()
             self.group_changing('vendor')
-            Vendor.objects.create(profile=self, organisation=organisation)
+            Vendor.objects.create(profile=self, organisation=organisation, address=address)
         except Exception:
             pass
         try:
             assert self.worker is not None
             self.worker.delete()
             self.group_changing('vendor')
-            Vendor.objects.create(profile=self, organisation=organisation)
+            Vendor.objects.create(profile=self, organisation=organisation, address=address)
         except Exception:
             pass
         try:
@@ -73,12 +75,12 @@ class Profile(models.Model): # fields
             print('some fucking error')
             return None
 
-    def role_to_worker(self, kind):
+    def role_to_worker(self, kind, salary, address):
         try:
             assert self.client is not None
             self.client.delete()
             self.group_changing(f'worker_{kind}')
-            Worker.objects.create(profile=self, kind=kind)
+            Worker.objects.create(profile=self, kind=kind, salary=salary, address=address)
             return True
         except Exception:
             pass
@@ -86,7 +88,7 @@ class Profile(models.Model): # fields
             assert self.vendor is not None
             self.vendor.delete()
             self.group_changing(f'worker_{kind}')
-            Worker.objects.create(profile=self, kind=kind)
+            Worker.objects.create(profile=self, kind=kind, salary=salary, address=address)
             return True
         except Exception:
             pass
@@ -98,10 +100,11 @@ class Profile(models.Model): # fields
             print('some fucking error')
             return None
 
-    def change_worker_class(self, kind):
+    def change_worker_class(self, kind, salary):
         try:
             assert self.worker is not None
             self.worker.kind = kind
+            self.worker.salary = salary
             self.worker.refresh_from_db()
             self.worker.save()
             self.group_changing(f'worker_{kind}')
@@ -235,7 +238,7 @@ def create_slug(instance, new_slug=None):
 
 # creation profile right after USER creation
 @receiver(post_save, sender=User)
-def update_user_profile(sender, instance, created, **kwargs):
+def create_user_profile(sender, instance, created, **kwargs):
     if created:
         Profile.objects.create(user=instance)
     instance.profile.save()
@@ -261,7 +264,7 @@ def update_user_profile(sender, instance, created, **kwargs):
     instance.profile.save()
 
 
-
+#/\/\ mb error in onetone field by 2 sides relation
 
 # при оценке персонала: 
 # совокупность нематериальных активов, возникающих в результате действия факторов, которые вызывают экономические выгоды # 11 видов рабочих
@@ -427,6 +430,14 @@ def update_user_profile(sender, instance, created, **kwargs):
 
 
 
+# class BankAccount(models.Model):
+#     number = models.CharField(max_length=16) # 0000 0000 0000 0000
+#     bank_name = models.TextField()
+
+#     def __str__(self):
+#         return f'{self.bank_name} card: {self.number}'
+
+
 # админ или хр или бухгалтер
 # админ будет вносить
 
@@ -435,6 +446,7 @@ def update_user_profile(sender, instance, created, **kwargs):
 class Vendor(models.Model): # user in ProfileMixin - физ представитель производителя, кри представитель производителя, через которого все закупки идут
     organisation = models.CharField(max_length=100)
     profile = models.OneToOneField(Profile, on_delete=models.SET_NULL, related_name='vendor')
+    address = models.OneToOneField(Address, on_delete=models.PROTECT, related_name='vendor')
     # user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='vendor')
     # address = models.OneToOneField(Address, on_delete=models.CASCADE, related_name='vendor')
     # and in Address he put organisation address
@@ -454,11 +466,15 @@ class Vendor(models.Model): # user in ProfileMixin - физ представит
 
 class Worker(models.Model):
     profile = models.OneToOneField(Profile, on_delete=models.SET_NULL, related_name='worker') # 
+    address = models.OneToOneField(Address, on_delete=models.CASCADE, related_name='worker')
     kind = models.CharField(max_length=30) # setting in form with casees (HR, Pharmacist, Cleaner ...)
+    salary = models.FloatField(default=0.0)# как таковой пересылки на счет нет, подсчитывается пока в селерипеймент все скопом кучей - ибо толку то - все равно мы послать на счет не сможем
+    birth_date = models.DateField(null=True, blank=True)
     # salary .... birth_date (mb from profile) and so on
 
 class Client(models.Model):
     profile = models.OneToOneField(Profile, on_delete=models.SET_NULL, related_name='client')
+    # address = models.OneToOneField(Address, on_delete=models.CASCADE, related_name='client')
 
 # class Director(Profile, Address): # like admin in rights
 #     pass

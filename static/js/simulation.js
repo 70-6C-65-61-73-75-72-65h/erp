@@ -1,10 +1,8 @@
-function simulation(sim){ // like like_thread
+function refresh_simulation(sim){
     var to_url = $(sim).attr('data-to-url'); 
     var from_url = $(sim).attr('data-from-url');
-    var action = $(sim).attr('data-action');
     var ajaxdata = {
         from_url: from_url,
-        action: action,
     };
     $.ajax({
         url: to_url,
@@ -14,17 +12,12 @@ function simulation(sim){ // like like_thread
         beforeSend: function (xhr) {
             xhr.setRequestHeader('X-CSRFToken', csrf_token)
         },
-        success: function(sim){
-            var sentences = '';
-            // var swither = true;
-            for (var key in sim) {
-                // swither?
-                sentences += '<h5 class="text-success-sim-info"><i>'+key+': '+sim[key]+'</i></h5><hr class="my-4">'; //:
-                // sentences += '<h5 class="text-info translated_sentences"><i>'+sim[key]+'</i></h5><hr class="my-4">';
-                // swither = !swither;
+        success: function(result){
+            for (var key in result) {
+                var sentence = '';
+                sentence = key + ': ' + result[key]
+                $("#" + key + "").text(sentence);
             };
-            // console.log(sentences);
-            $('#simulation_info').html(sentences);
         }
     });
 };

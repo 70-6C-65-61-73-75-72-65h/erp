@@ -12,29 +12,10 @@ import bs4
 # "start_address": "Bul\u02b9var Oleksandriys\u02b9kyy, 95, Bila Tserkva, Kyivs'ka oblast, Ukraine, 09100", 
 # "start_location": {"lat": 49.806135, "lng": 30.1039262}, 
 
-# /\/\ Very big Bag - that addresses only for outside pharmacies ( for 1 in town ) is implemented \\ moreover in drow_graph only outter phs is drawed
-def get_addresses():
-    """ 45 pharms, cause we get first 44 start_address and last 1 end_address
-    there are all (45*(45-1)/2 = 990 routes) will be checked (until get nessesary start_address and end_address)
-
-    вместо этого всего можно было просто сделать:
-
-    all_routes = read_apt_routes()
-    addrs = set([route["routes"][0]['legs'][0]["start_address"] for route in all_routes])
-    addrs.add(all_routes[-1]["routes"][0]['legs'][0]['end_address'])
-
-    но нам нужен порядок адрессов одинаковый всегда
-    """
-    all_routes = read_apt_routes()
-    addrs = []
-    for ind, route in enumerate(all_routes):
-        checked_addr = route["routes"][0]['legs'][0]["start_address"]
-        if checked_addr not in addrs:
-            addrs.append(checked_addr)
-        if ind == len(all_routes) - 1:
-            addrs.append(route["routes"][0]['legs'][0]["end_address"])
-    return addrs
     
+
+# def get_route_vendor_to_wh(addr):
+
     # [route["routes"][0]['legs'][0]["start_address"] for route in read_apt_routes()]
 
 # there are creates some kind of order of apts
@@ -200,8 +181,8 @@ def main():
 # #     return distribute_data(initial_data, funcs)
 # # # unique_names_by - какая-то недоразвитая фигня, прям как я
 
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()
 # # # funcs = [{"func": setuplog, "key": None}, {"func": read_file, "key": ['main_path', 'file_pathes']}, {"func": trans_to_list, "key": ['elem_path', 'searched_data']}]
 # # # print(list(map(lambda f: list(map(lambda k: globals()[k], f)), funcs)))
 
@@ -220,3 +201,33 @@ if __name__ == '__main__':
 #         'unique_names_by': ["start_address", "end_address"]}
 
 # print(tuple(map(lambda key: datas[key], keys)))
+
+
+
+
+
+    
+# for each PC 
+# def get_max_distance_to_num_of_whs(num):
+#     """ получаем максимальные пути по времени доставки ( из всех путей ) в размере колличества аптек на 1 машину """
+#     import algs
+#     list_num = [0 for i in range(num)]
+#     for route in algs.read_uprgated_routes():
+#         route["duration"]
+    # route = [r for r in algs.read_uprgated_routes() if r["start_address"]==addr1 and r["end_address"]==addr2][0]
+    # return route["distance"]
+
+
+    # "distance": val["distance"]['value'], # 111111111 
+    #         "duration": val["duration"]['value'],
+    #         "start_address": val["start_address"],
+    #         "end_address": val["end_address"],
+    #         "start_location_lat": val["start_location"]['lat'],
+    #         "start_location_lng": val["start_location"]['lng'],
+    #         "end_location_lat": val["end_location"]['lat'],
+    #         "end_location_lng": val["end_location"]['lng'],
+    #         'route_improvement': '',
+    #         'time_improvement': None,
+    #         'intermediate_address': '',
+    #         'intermediate_location_lat': None,
+    #         'intermediate_location_lng': None,

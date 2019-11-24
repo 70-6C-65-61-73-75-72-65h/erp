@@ -65,7 +65,7 @@ try:
     # os.system('manage.py shell <_auto/_up.py')
     # os.system("manage.py createsuperuser2 --username admin --password 111 --noinput --email 'admin@email.com'")
     # os.system('manage.py runserver 192.168.0.111:8000')
-    os.system('manage.py runserver 0.0.0.0:8000')
+    # os.system('manage.py runserver 0.0.0.0:8000')
 except Exception as ex:
     print('nu tu i durak')
     print(ex)

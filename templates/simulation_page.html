@@ -2,16 +2,20 @@
 
 {% block content %}
 <h1>Simulation</h1>
-<h3>Status:</h3>
-<div id='simulation_info'></div>
 <div class='container'>
-{% if !simulations_exists %}
-<p><a href="{% url 'simulation:simulation_create' %}">Create First Simulation</a></p>
+{% if not simulations_exists %}
+    <p><a href="{% url 'simulation:simulation_create' %}">Create First Simulation</a></p>
 {% else %}
-    {% if !simulation_today_str %}
-        <p><a data-from-url="{{ request.get_absolute_url }}" data-to-url="{% url 'simulation:simulation' %}" data-action='1' id="start_simulation" onclick="simulation(this)" class="btn btn-primary" role="button">Start Simulation</a></p>
+    {% if not simulation_status %}
+        <p><a href="{% url 'simulation:simulate' 'enable' %}" class="btn btn-primary" role="button">Start Simulation</a></p>
     {% else %}
-        <p><a data-from-url="{{ request.get_absolute_url }}" data-to-url="{% url 'simulation:simulation' %}" data-action='0' id="stop_simulation" onclick="simulation(this)" class="btn btn-danger" role="button">Stop Simulation</a></p>
+        <h3><i id='days_passed'>days_passed: {{days_passed}}</i></h3>
+        <h3><i id='simulation_today_str'>simulation_today_str: {{simulation_today_str}}</i></h3>
+        <h3><i id='simulation_status'>simulation_status: {{simulation_status}}</i></h3>
+        <hr>
+        <p><a data-to-url="{% url 'simulation:current_simulation_info' %}" data-from-url="{{ request.get_full_path }}" onclick="refresh_simulation(this)" class="btn btn-info" role="button">Refresh Simulation</a></p>
+        <hr>
+        <p><a href="{% url 'simulation:simulate' 'disable' %}" class="btn btn-danger" role="button">Stop Simulation</a></p>
     {% endif %}
 {% endif %}
 </div>

@@ -38,10 +38,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # 'mixins',
+    'mixins',
     'accounts.apps.AccountsConfig',
     'assessments.apps.AssessmentsConfig',
-    'simulation',
+    'simulation.apps.SimulationConfig',
     
     'rest_framework',
     'psycopg2',

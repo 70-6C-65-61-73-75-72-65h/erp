@@ -235,3 +235,25 @@
 # kek = 1.9
 # d_keke = D(str(kek))
 # print(type(d_keke))
+
+# import numpy as np
+
+# data1 = np.ones((1, 16, 16, 3))
+# data2 = np.zeros((1, 16, 16, 1))
+
+# # for a1, a2 in zip(data1, data2):
+# #     for b1, b2 in zip(a1, a2):
+# #         for c1, c2 in zip(b1, b2):
+# #             for index, d in enumerate(c2):
+# #                 c2[index] = c1[0]
+
+# # print(data2)
+# # print(int(1.2))
+
+# for a1, a2 in zip(data1, data2):
+#     for b1, b2 in zip(a1, a2):
+#         for c1, c2 in zip(b1, b2):
+#             c2[0] =  (c1[0] + c1[1] + c1[2])/3
+#             # for index, d in enumerate(c2):
+#             #     c2[index] = c1[0]
+# print(data2)

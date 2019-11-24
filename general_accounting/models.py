@@ -8,8 +8,8 @@ import datetime # datetime.date.today()
 
 from ast import literal_eval
 # from django.utils import timezone
-from simulation.models import MyDateField, simulation_datetime_date_today
-
+from mixins.models import MyDateField
+from simulation.models import get_simulation
 # Create your models here.
 # class HumanCapacity(models.Model):
 
@@ -25,6 +25,17 @@ from simulation.models import MyDateField, simulation_datetime_date_today
 # отсюда пиздим все счета https://dtkt.com.ua/documents/dovidnyk/plan_rah/plan-r.html
 
 from django.db.models.signals import post_save, pre_save
+
+
+
+
+class TaxRate(models.Model):
+    name = models.CharField(max_length=30)
+    rate = models.FloatField(default=0.2)
+
+
+
+    
 # можно заполнить ( будет 300 гдето)
 class OperativeAccounts(models.Model): #  в процессе не будет менятся колличество счетов
     """
@@ -105,8 +116,8 @@ class TrialBalance(models.Model): # каждая новая строка - но�
     turnover_debit = models.FloatField(default=0.0) # Decimal
     end_saldo_debit = models.FloatField(default=0.0) # Decimal
 
-    date_created = models.MyDateField(auto_now_add=True)
-    date_report = models.MyDateField(editable=True, blank=True)# from there we can get the ""period""
+    date_created = MyDateField(auto_now_add=True)
+    date_report = MyDateField(editable=True, blank=True)# from there we can get the ""period""
     period = models.IntegerField(default=0, max_length=10)
 
     dicts_of_accs = models.TextField(blank=True) # TODO change on json or array of dicts (its nevermind)
@@ -202,7 +213,7 @@ class TrialBalance(models.Model): # каждая новая строка - но�
         # ast.literal_eval(self.dicts_of_accs)
         self.reported = True
         # self.date_report = datetime.datetime.today() # tiemzone.now()
-        self.date_report = 
+        self.date_report = get_simulation().today
         self.period = int(self.date_created - self.date_report)
         # self.refresh_from_db() # or not needed
         self.save() # super().save() # hz
@@ -227,8 +238,8 @@ class AccountingBalance(models.Model): # каждая новая строка - 
     assets_total = models.FloatField(default=0.0)  # 12 dig
     passives_total = models.FloatField(default=0.0)
     reported = models.BooleanField(default=False) #  1 - that instance of AccountingBalance was reported
-    date_created = models.MyDateField(auto_now_add=True) # right after previous reported ( so there from we can get period)
-    date_report = models.MyDateField(editable=True, blank=True)#models.DateField(auto_now_add=True)
+    date_created = MyDateField(auto_now_add=True) # right after previous reported ( so there from we can get period)
+    date_report = MyDateField(editable=True, blank=True)#models.DateField(auto_now_add=True)                                # hz zachem esli editable
     period = models.IntegerField(default=0, max_length=10) # i shouldnt edit not from that class aka ""private""
 
     def get_assets(self):
@@ -243,7 +254,7 @@ class AccountingBalance(models.Model): # каждая новая строка - 
         self.assets_total = sum([(asset.debit_value - asset.credit_value) for asset in self.assets.all()]) # check without []
         self.passives_total = sum([(passive.debit_value - passive.credit_value) for passive in self.passives.all()])
         self.reported = True
-        self.date_report = datetime.datetime.today() # tiemzone.now()
+        self.date_report = get_simulation().today # tiemzone.now()
         self.period = int(self.date_created - self.date_report)
         # self.refresh_from_db() # or not needed
         self.save() # super().save() # hz
@@ -299,7 +310,7 @@ class Assets(models.Model): # Actives
     tb = models.ForeignKey(TrialBalance, on_delete=models.CASCADE, related_name='assets')
     debit_value = models.FloatField(default=0.0, blank=True) # Decimal # only debit_value for !that! operation
     credit_value = models.FloatField(default=0.0, blank=True) # Decimal
-    operative_day = models.MyDateField(auto_now_add=True) # чисто для вида и стат
+    operative_day = MyDateField(auto_now_add=True) # чисто для вида и стат
     
 @receiver(pre_save, sender=Assets)
 def get_ab_Assets(sender, instance, *args, **kwargs):
@@ -316,7 +327,7 @@ class Passives(models.Model):
     tb = models.ForeignKey(TrialBalance, on_delete=models.CASCADE, related_name='passives')
     debit_value = models.FloatField(default=0.0, blank=True) # Decimal
     credit_value = models.FloatField(default=0.0, blank=True) # Decimal
-    operative_day = models.MyDateField(auto_now_add=True)
+    operative_day = MyDateField(auto_now_add=True)
 
 @receiver(pre_save, sender=Passives)
 def get_ab_Passives(sender, instance, *args, **kwargs):
