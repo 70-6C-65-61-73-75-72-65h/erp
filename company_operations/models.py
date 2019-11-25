@@ -15,6 +15,7 @@ from general_accounting.models import Assets, Passives, TaxRate
 from accounts.models import Vendor, Worker #, Client  - при совершении поодиночного сейла SaleAlone
 from simulation.models import get_simulation
 from mixins.models import Address, MyDateField
+from mixins.functions import get_random_int
 # Create your models here.
 from general_accounting import acc_operations
 from .operations import forecast
@@ -60,7 +61,7 @@ def get_CommunalServisePayment_value(): # каждый месяц рандомн
     tax_property_size_limit = sim.tax_property_size_limit
     pharmacys_spendingds = get_random_int(sim.pharmacys_spendingds)
     department_spendingds = get_random_int(sim.department_spendingds)
-    warehouse_num = ast.literal_eval(CompanyConsts.objects.get(name="warehouse_num").value)
+    warehouse_num = get_simulation().warehouse_num
 
     get_property_tax = lambda size_meters: (size_meters - tax_property_size_limit) * TaxRate.objects.get(name='property_Tax').rate * minimal_zp if size_meters > tax_property_size_limit else 0
     payment_value = float(warehouse_num * (get_property_tax(pharmacys_sizes) + pharmacys_spendingds) +
@@ -92,9 +93,10 @@ def get_Veh_repair_Payment_value(): # каждый месяц рандомно
     veh_repair_price_month = get_simulation().veh_repair_price_month
     vehicles_num = get_simulation().vehicles_num
     total_repair_value = 0
-    for veh in range(vehicles_num):
+    for veh in range(1, vehicles_num+1):
         repair_for_veh = get_random_int(veh_repair_price_month)
-        Vehicle.objects.get().update(veh_repair_price_month=repair_for_veh)
+        ve = Vehicle.objects.get(id=veh)#.update(veh_repair_price_month=repair_for_veh)
+        ve.veh_repair_price_month = repair_for_veh
         total_repair_value += repair_for_veh
 
     return total_repair_value
@@ -162,7 +164,7 @@ def check_SalaryPayment(): # from simulation.up
 # на каждую аптеку пурчейз отдельно
 class Purchase(models.Model):  # when needed                                                       # 1 на все закупки у вендора в соответствии с клеймами
     """
-    Our purchases from vendor 
+    Our purchases from vendor
     (where vendor is a person that dealed with us) 
     so we import its model from accounts.models
     """
@@ -177,53 +179,63 @@ class Purchase(models.Model):  # when needed                                    
     
     # whtransfer = models.ForeignKey("WHTransfer", related_name='purchases', on_delete=models.CASCADE) # хочу сделать Purchase как WHTransfer
 
-    arrival_time = models.DateTimeField(blank=True)
+    arrival_time = models.DateTimeField(blank=True, null=True)
     way_costs = models.FloatField(default=0.0)
-    used_vehicle_id = models.IntegerField(max_length=3, blank=True)
+    used_vehicle_id = models.IntegerField(blank=True, null=True)
 
-    arrival_to_start = models.DateTimeField(blank=True)
+    arrival_to_start = models.DateTimeField(blank=True, null=True)
 
     total_price = models.FloatField(default=0.0)
     total_markup_price = models.FloatField(default=0.0)
     
-    demanded = ArrayField(models.IntegerField(max_length=10), blank=True) #if not instance.demanded
+    demanded = ArrayField(models.IntegerField(), blank=True, null=True) #if not instance.demanded
 
     # а вот если паралельно с закупками куча трансферов меж продуктами будет, то бом-бом бошке)
     def perform_purchase(self):
         if Vehicle.objects.filter(used_now=False).exists():
-            self.start_purchase(Vehicle.objects.filter(used_now=False)[0])
+            self.start_purchase(Vehicle.objects.filter(used_now=False).last())
         else:
             self.in_queue = True # очередь мож длится долго, ибо кто первый схватил машину на пурчейз тот и король 
             # but after that we anyway create a new Purchase to that wh to add next claims to it
 
 
     def start_purchase(self, vehicle):
-
+        # print(f'start purchase {self.id}')
         self.used_vehicle_id = vehicle.id
         vehicle.used_now = True
 
         from_vehicle_addr = vehicle.vehicle_full_address_now # здесь он был до поездки
 
+        start_addr = self.vendor.address.full_address
+        end_addr = self.to_wh.address.full_address
 
-        start_addr = (Vendor.objects.all().last()).address.full_address
-        end_addr = self.wh.address.full_address
+        if from_vehicle_addr != start_addr:
+            vehicle.go_from_addr = from_vehicle_addr
+            vehicle.go_to_addr = start_addr
+            vehicle.save()
 
-        vehicle.go_from_addr = from_vehicle_addr
-        vehicle.go_to_addr = start_addr
+            # in hours
+            pre_spended_hours = ((alg.get_route_time_to_wh(from_vehicle_addr, start_addr))/60/60)* get_simulation().delivery_added_time_koef
+            spended_hours = ((alg.get_route_time_to_wh(start_addr, end_addr))/60/60)* get_simulation().delivery_added_time_koef #* get_simulation().delivery_added_time_koef * get_simulation().num_of_phs_on_1_vehicle # 0.4*1.15*11
+            
+            self.arrival_time = get_simulation().today_time + datetime.timedelta(hours=(pre_spended_hours + spended_hours))
+            self.arrival_to_start = get_simulation().today_time + datetime.timedelta(hours=(pre_spended_hours))
 
-        vehicle.save()
+            self.way_costs = (alg.get_route_distance_to_wh(from_vehicle_addr, start_addr) / 100000) * get_simulation().vehicle_consumption * get_simulation().fuel_price + \
+                            (alg.get_route_distance_to_wh(start_addr, end_addr) / 100000) * get_simulation().vehicle_consumption * get_simulation().fuel_price
+        else:
+            vehicle.go_from_addr = start_addr
+            vehicle.go_to_addr = end_addr
+            self.arrival_to_start = get_simulation().today_time
+            vehicle.save()
 
-        # in hours
-        pre_spended_hours = ((get_ph_data.get_route_time_to_wh(from_vehicle_addr, start_addr))/60/60)* get_simulation().delivery_added_time_koef
-        spended_hours = ((get_ph_data.get_route_time_to_wh(start_addr, end_addr))/60/60)* get_simulation().delivery_added_time_koef #* get_simulation().delivery_added_time_koef * get_simulation().num_of_phs_on_1_vehicle # 0.4*1.15*11
-        
-        self.arrival_time = get_simulation().today_time + datetime.timedelta(hours=(pre_spended_hours + spended_hours))
-        self.arrival_to_start = get_simulation().today_time + datetime.timedelta(hours=(pre_spended_hours))
+            spended_hours = ((alg.get_route_time_to_wh(start_addr, end_addr))/60/60)* get_simulation().delivery_added_time_koef #* get_simulation().delivery_added_time_koef * get_simulation().num_of_phs_on_1_vehicle # 0.4*1.15*11
+            
+            self.arrival_time = get_simulation().today_time + datetime.timedelta(hours=spended_hours)
 
-        self.way_costs = (get_ph_data.get_route_distance_to_wh(from_vehicle_addr, start_addr) / 100000) * get_simulation().vehicle_consumption * get_simulation().fuel_price +
-                        (get_ph_data.get_route_distance_to_wh(start_addr, end_addr) / 100000) * get_simulation().vehicle_consumption * get_simulation().fuel_price
+            self.way_costs = (alg.get_route_distance_to_wh(start_addr, end_addr) / 100000) * get_simulation().vehicle_consumption * get_simulation().fuel_price
 
-        pcs = self.purchase_claims.all() # markup_price
+        pcs = self.purchase_claims.all() # markup_price # ofc definitly purchase_claims exists - cause they run the purchase
         self.total_price = sum(pc.whp.product.cost_price * pc.quantity for pc in pcs)
         self.total_markup_price = sum(pc.whp.product.markup_price * pc.quantity for pc in pcs)
         # for pc in pcs: #quantity whp
@@ -245,7 +257,7 @@ class Purchase(models.Model):  # when needed                                    
     def vehicle_arrived_to_start(self):
         """ checks every hour """
         # if self.arrival_to_start == get_simulation().today_time:
-        vehicle = Vehicle.objects.get(id=used_vehicle_id)
+        vehicle = Vehicle.objects.get(id=self.used_vehicle_id)
         vehicle.transfering = True
         start_addr = self.from_wh.address.full_address
         end_addr = self.to_wh.address.full_address
@@ -272,7 +284,7 @@ class Purchase(models.Model):  # when needed                                    
         #     whp2.save()
         #     whtc.performed = True
         #     whtc.save()
-        pcs = self.purchase_claims.all()
+        pcs = self.purchase_claims.all() #  ofc definitly purchase_claims exists - cause they run the purchase
         for pc in pcs:
             pc.whp.quantity += pc.quantity
             pc.save()
@@ -293,28 +305,32 @@ class Purchase(models.Model):  # when needed                                    
 
 @receiver(pre_save, sender=Purchase)
 def set_Purchase_vals(sender, instance, *args, **kwargs):
-    if not instance.vendor:
+    if not hasattr(instance, "vendor"): # hasattr(instance, "vendor")  if instance.vendor is None
         instance.vendor = Vendor.objects.all().last()
         instance.tax = TaxRate.objects.get(name='for_Purchase')
-        instance.save()
+        # instance.save()
 
 
 @receiver(post_save, sender=Purchase)
 def Purchase_set_A_P(sender, instance, created, **kwargs):
-    if instance.started == True and instance.performed == False: # if already perform and then save do accounting operations
-        acc_operations.fuel_spends_payment(instance.way_costs)
-        # оплатили продукты
-        acc_operations.payment_to_suppliers_for_all(instance.total_price)
-        # we create new Purchase to be added to new upcoming PurchaseClaims
-        Purchase.objects.create(wh=instance.wh)
-    elif instance.started == False and instance.performed == False:
-        # запускаем процесс
-        instance.perform_purchase()
-    elif instance.started == True and instance.performed == True:
-        # получаем продукты
-        acc_operations.received_products(instance.total_markup_price)
+    if instance.purchase_claims.all().exists():# hasattr(instance, "purchase_claims"): # если есть запросы на него - незя самому сохранять - ибо тогда все клеймы которые к нему - запустятся к исполнению , а они должны запускатся на expire_day
+        # print('pizda rulyu')
+        # print(instance.purchase_claims.all())
+        # print(instance.purchase_claims.all().exists())
+        if instance.started == True and instance.performed == False: # if already perform and then save do accounting operations
+            acc_operations.fuel_spends_payment(instance.way_costs)
+            # оплатили продукты
+            acc_operations.payment_to_suppliers_for_all(instance.total_price)
+            # we create new Purchase to be added to new upcoming PurchaseClaims
+            Purchase.objects.create(wh=instance.wh)
+        elif instance.started == False and instance.performed == False:
+            # запускаем процесс
+            instance.perform_purchase()
+        elif instance.started == True and instance.performed == True:
+            # получаем продукты
+            acc_operations.received_products(instance.total_markup_price)
 
-    instance.save()
+    # instance.save()
 
 
 # def @receiver
@@ -360,10 +376,10 @@ class PurchaseClaim(models.Model): # when needed                               #
         claim_executed - settled after PC is expire and executed in perform_purchase()
     """
     expire_day = models.DateField() # auto_now_add = created simulation day  # auto_now = updated simulation day # to add value and edit it every simulation day
-    quantity - models.IntegerField(max_length=5)
+    quantity = models.IntegerField()
     whp = models.ForeignKey('WHProduct', related_name='purchase_claims', on_delete=models.CASCADE)
     # claim_executed = models.BooleanField(default=False) # already_ordered and not gonna searched in future to purchase 
-    max_days_on_delivery = models.IntegerField(default=2) # /\/\ определять по значениям из роутов * 2 ( как задержка ) # ofc найбольшое время по доставке 2 дня - потолок \\ ибо потолок реального секономленного времени - пол дня
+    max_days_on_delivery = models.IntegerField() # /\/\ определять по значениям из роутов * 2 ( как задержка ) # ofc найбольшое время по доставке 2 дня - потолок \\ ибо потолок реального секономленного времени - пол дня
     
     purchase = models.ForeignKey(Purchase, related_name='purchase_claims', on_delete=models.CASCADE)
 
@@ -371,10 +387,10 @@ class PurchaseClaim(models.Model): # when needed                               #
 @receiver(pre_save, sender=PurchaseClaim)
 def set_PurchaseClaim_expire_day(sender, instance, *args, **kwargs):
     # if quantity is settled -> Sale already is performed
-    if not instance.purchase: #instance.expire_day and not instance.purchase:
+    if not hasattr(instance, "purchase"): #instance.expire_day and not instance.purchase:
 
         # выберем 4 самых длинный путей от вендора до аптек, для определениия наихудщего случая
-        first_Pharmacies = algs.read_routes_from_vendor_duration_descending()[:get_simulation().num_of_phs_on_1_vehicle] # 4
+        first_Pharmacies = alg.read_routes_from_vendor_duration_descending()[:get_simulation().num_of_phs_on_1_vehicle] # 4
 
         # выбираем наугад любую манишу и берем ее начльный адрес , только лишь для расчета доп времени по расстоянию для 
         # прибытия в начальный адрес (первый адрес с максимально долгой доставкой)
@@ -386,7 +402,7 @@ def set_PurchaseClaim_expire_day(sender, instance, *args, **kwargs):
         # from max_delivery_time_addrs[0] to vendor_addr -> 
         # from vendor_addr  to max_delivery_time_addrs[1] ....
         all_time = []
-        all_time.append(algs.get_route_time_to_wh(veh_start_addr, vendor_addr))
+        all_time.append(alg.get_route_time_to_wh(veh_start_addr, vendor_addr))
         for i in first_Pharmacies:
             all_time.append(i[0]["duration"]) # from vend
             all_time.append(i[0]["duration"]) # to vend
@@ -395,7 +411,7 @@ def set_PurchaseClaim_expire_day(sender, instance, *args, **kwargs):
         # print((sum(all_time)/60/60/24)*1.15) #  - 15% -  это доп время при доставке , все это в секундах
         del all_time
         instance.max_days_on_delivery = max_days_on_delivery
-        instance.expire_day =  get_simulation().today + datetime.timedelta(days=(instance.wph.threshold_days - max_days_on_delivery))
+        instance.expire_day = get_simulation().today + datetime.timedelta(days=(instance.whp.threshold_days - max_days_on_delivery))
 
         # wh_addr = instance.whp.warehouse.address.full_address
         # self_wh = instance.whp.warehouse
@@ -405,16 +421,17 @@ def set_PurchaseClaim_expire_day(sender, instance, *args, **kwargs):
         # !!! считаем товары после started=True, тогда же и создаем новую пурчейзу к которой уже будут добавлятся новые PurchaseClaim в этой аптеке
         instance.purchase = Purchase.objects.get(wh=instance.whp.warehouse, performed=False, started=False)#, in_queue=False)
 
-        instance.save()
+        # instance.save()
 
 
 
 # once in a day
 def check_on_start_purchases():
-    for p in Purchase.objects.filter(performed=False, started=False, in_queue=False):
-        if p.purchase_claims.all().exists():
-            if p.purchase_claims.filter(expire_day=get_simulation().today).exists():
-                p.perform_purchase()
+    if Purchase.objects.filter(performed=False, started=False, in_queue=False).exists():
+        for p in Purchase.objects.filter(performed=False, started=False, in_queue=False).all():
+            if p.purchase_claims.all().exists(): #hasattr(p, "purchase_claims"): # p.purchase_claims.all().exists()
+                if p.purchase_claims.filter(expire_day=get_simulation().today).exists():
+                    p.perform_purchase()
 
 # ежечасово проверяем на доступ к тачке шоб сделать perform_purchase который острочивается в in_queue
 # def check_purchase_delivery_queue(today_time):
@@ -424,15 +441,15 @@ def check_on_start_purchases():
 def check_purchase_arrival(today_time): # to start perform new transfers that can be started cause of vehicles lack 
     # if arrived to wh
     if Purchase.objects.filter(arrival_time=today_time).exists(): #  -  по сути проверяет arrival_time предыдущего WHTransfer - потом освобождает тачки - и их можно использывать в след стейтменте
-        [p.end_purchase() for p in Purchase.objects.filter(arrival_time=today_time)]
+        [p.end_purchase() for p in Purchase.objects.filter(arrival_time=today_time).all()]
 
     # if not started cause of vehicle lack and check on ability to start 
     if Purchase.objects.filter(performed=False, started=False, in_queue=True).exists(): # cause if i create 
-        [p.perform_purchase() for p in Purchase.objects.filter(performed=False, started=False, in_queue=True)]
+        [p.perform_purchase() for p in Purchase.objects.filter(performed=False, started=False, in_queue=True).all()]
 
     # if vehicle on start position to transfer product
-    if Purchase.objects.filter(arrival_to_start=today_time).exists():
-        [p.vehicle_arrived_to_start() for p in Purchase.objects.filter(arrival_to_start=today_time)]
+    if Purchase.objects.filter(arrival_to_start__lte=today_time).exists():
+        [p.vehicle_arrived_to_start() for p in Purchase.objects.filter(arrival_to_start__lte=today_time).all()]
 
 
 # vendor = start_address = "Bulʹvar Oleksandriysʹkyy, 95, Bila Tserkva, Kyivs'ka oblast, Ukraine, 09100"
@@ -458,7 +475,7 @@ def check_purchase_arrival(today_time): # to start perform new transfers that ca
 class WHTransfer(models.Model):  # when needed                   # по 1 на отрасление меж аптеками # сразу все трансферы тут с разных аптек
     # тоесть если мы отправили с 1 аптеки сразу в несколько других
     # так как аптеки все в разных городах то смысл отправлять в другую аптеку далеко есть только если продуктов из 1 в 2 отправляется более (задать) 300 в квонтити колличестве тоесть маловероятно
-    # from_wh_to_others_time_days = models.IntegerField(max_length=5) # считаем в math.ceil(get_ph_data * 2 ) 
+    # from_wh_to_others_time_days = models.IntegerField(max_length=5) # считаем в math.ceil(algs * 2 ) 
     # arrival_day = models.DateField(blank=True)
     # way_costs = models.FloatField(default=0.0)
     # started = models.BooleanField(default=False)
@@ -469,24 +486,24 @@ class WHTransfer(models.Model):  # when needed                   # по 1 на �
     # quantity =
     # accepted = models.BooleanField(default=False)
 
-    from_wh = models.ForeignKey('WareHouse', related_name='WHTransfers', on_delete=models.CASCADE) 
-    to_wh = models.ForeignKey('WareHouse', related_name='WHTransfers', on_delete=models.CASCADE)
+    from_wh = models.ForeignKey('WareHouse', related_name='WHTransfers_from', on_delete=models.CASCADE) 
+    to_wh = models.ForeignKey('WareHouse', related_name='WHTransfers_to', on_delete=models.CASCADE)
 
     started = models.BooleanField(default=False)
     ended = models.BooleanField(default=False)
 
-    arrival_time = models.DateTimeField(blank=True)
+    arrival_time = models.DateTimeField(blank=True, null=True)
     way_costs = models.FloatField(default=0.0)
-    used_vehicle_id = models.IntegerField(max_length=3, blank=True)
+    used_vehicle_id = models.IntegerField(blank=True, null=True)
 
-    arrival_to_start = models.DateTimeField(blank=True)
+    arrival_to_start = models.DateTimeField(blank=True, null=True)
 
     def expired_whtcs(self):
         return get_simulation().today - datetime.timedelta(days=get_simulation().threshold_days)
 
     def perform_WHT(self):
         if Vehicle.objects.filter(used_now=False).exists():
-            self.start_transfer(Vehicle.objects.filter(used_now=False)[0])
+            self.start_transfer(Vehicle.objects.filter(used_now=False).last())
         #     return True
         # else:
         #     return False
@@ -499,28 +516,40 @@ class WHTransfer(models.Model):  # when needed                   # по 1 на �
 
         start_addr = self.from_wh.address.full_address
         end_addr = self.to_wh.address.full_address
+        if from_vehicle_addr != start_addr:
+            vehicle.go_from_addr = from_vehicle_addr
+            vehicle.go_to_addr = start_addr
+            vehicle.save()
 
-        vehicle.go_from_addr = from_vehicle_addr
-        vehicle.go_to_addr = start_addr
-        # vehicle.transfering = False
+            # in hours
+            pre_spended_hours = ((alg.get_route_time_to_wh(from_vehicle_addr, start_addr))/60/60)* get_simulation().delivery_added_time_koef
+            spended_hours = ((alg.get_route_time_to_wh(start_addr, end_addr))/60/60)* get_simulation().delivery_added_time_koef #* get_simulation().delivery_added_time_koef * get_simulation().num_of_phs_on_1_vehicle # 0.4*1.15*11
+            
+            self.arrival_time = get_simulation().today_time + datetime.timedelta(hours=(pre_spended_hours + spended_hours))
+            self.arrival_to_start = get_simulation().today_time + datetime.timedelta(hours=(pre_spended_hours))
 
-        vehicle.save()
-        # in hours
-        pre_spended_hours = ((get_ph_data.get_route_time_to_wh(from_vehicle_addr, start_addr))/60/60)* get_simulation().delivery_added_time_koef
-        spended_hours = ((get_ph_data.get_route_time_to_wh(start_addr, end_addr))/60/60)* get_simulation().delivery_added_time_koef #* get_simulation().delivery_added_time_koef * get_simulation().num_of_phs_on_1_vehicle # 0.4*1.15*11
+            self.way_costs = (alg.get_route_distance_to_wh(from_vehicle_addr, start_addr) / 100000) * get_simulation().vehicle_consumption * get_simulation().fuel_price + \
+                            (alg.get_route_distance_to_wh(start_addr, end_addr) / 100000) * get_simulation().vehicle_consumption * get_simulation().fuel_price
+
+        else:
+            vehicle.go_from_addr = start_addr
+            vehicle.go_to_addr = end_addr
+            self.arrival_to_start = get_simulation().today_time
+            vehicle.save()
+
+            spended_hours = ((alg.get_route_time_to_wh(start_addr, end_addr))/60/60)* get_simulation().delivery_added_time_koef #* get_simulation().delivery_added_time_koef * get_simulation().num_of_phs_on_1_vehicle # 0.4*1.15*11
+            
+            self.arrival_time = get_simulation().today_time + datetime.timedelta(hours=spended_hours)
+
+            self.way_costs = (alg.get_route_distance_to_wh(start_addr, end_addr) / 100000) * get_simulation().vehicle_consumption * get_simulation().fuel_price
+
         
-        self.arrival_time = get_simulation().today_time + datetime.timedelta(hours=(pre_spended_hours + spended_hours))
-        self.arrival_to_start = get_simulation().today_time + datetime.timedelta(hours=(pre_spended_hours))
-
-        self.way_costs = (get_ph_data.get_route_distance_to_wh(from_vehicle_addr, start_addr) / 100000) * get_simulation().vehicle_consumption * get_simulation().fuel_price +
-                        (get_ph_data.get_route_distance_to_wh(start_addr, end_addr) / 100000) * get_simulation().vehicle_consumption * get_simulation().fuel_price
-
         
         # whtcs = self.WHTransferClaims.filter(accepted=True)
         # whtcs = self.WHTransferClaims.all()
         # за 7 дней до этого WHTransfer исполнения были созданы - то мы их отсекаем ( даже если это были изначально и для этого WHTransfer созданы - все равно они уже пополнились через PurchaseClaim)
         # if created >= expired_whtcs - истекло
-        whtcs = WHTransferClaim.objects.filter(from_wh=self.from_wh, to_wh=self.to_wh, accepted=True, started=False, performed=False, created__gte=self.expired_whtcs()) # не успеют заново запросится пока эти не исполнятся, 
+        whtcs = WHTransferClaim.objects.filter(from_wh=self.from_wh, to_wh=self.to_wh, accepted=True, started=False, performed=False, created__gte=self.expired_whtcs()).all()  # не успеют заново запросится пока эти не исполнятся, 
         for whtc in whtcs:
             whp1 = WHProduct.objects.get(product=whtc.product, warehouse=whtc.from_wh)
             whp1.quantity -= whtc.quantity
@@ -534,7 +563,7 @@ class WHTransfer(models.Model):  # when needed                   # по 1 на �
     def vehicle_arrived_to_start(self):
         """ checks every hour """
         # if self.arrival_to_start == get_simulation().today_time:
-        vehicle = Vehicle.objects.get(id=used_vehicle_id)
+        vehicle = Vehicle.objects.get(id=self.used_vehicle_id)
         vehicle.transfering = True
         start_addr = self.from_wh.address.full_address
         end_addr = self.to_wh.address.full_address
@@ -554,7 +583,7 @@ class WHTransfer(models.Model):  # when needed                   # по 1 на �
 
         # whtcs = self.WHTransferClaims.filter(accepted=True)
         # тут уже назад нт смысла отправлять, ибо доставили, потому expired_whtcs() не используется
-        whtcs = WHTransferClaim.objects.filter(from_wh=self.from_wh, to_wh=self.to_wh, accepted=True, started=True, performed=False) # , created__gte=self.expired_whtcs())
+        whtcs = WHTransferClaim.objects.filter(from_wh=self.from_wh, to_wh=self.to_wh, accepted=True, started=True, performed=False).all() # , created__gte=self.expired_whtcs())
         for whtc in whtcs:
             whp2 = WHProduct.objects.get(product=whtc.product, warehouse=whtc.to_wh)
             whp2.quantity += whtc.quantity
@@ -569,23 +598,23 @@ class WHTransfer(models.Model):  # when needed                   # по 1 на �
 #  1 раз это проходим, но потом в check_WHT_arrival проверям ежечасово чтоб запустить трансфер
 @receiver(post_save, sender=WHTransfer)
 def WHTransfer_set_A_P(sender, instance, created, **kwargs):
-    if instance.started == True and instance.end == False: # if already perform and then save do accounting operations
+    if instance.started == True and instance.ended == False: # if already perform and then save do accounting operations
         acc_operations.fuel_spends_payment(instance.way_costs)
-        WHTransfer.objects.create()
-    elif instance.started == False and instance.end == False:
+        # WHTransfer.objects.create()
+    elif instance.started == False and instance.ended == False:
         instance.perform_WHT()
-    instance.save()
+    # instance.save()
     
 # only from simulation # from simulation.up.check_WHT_transfer() or from perform_sale()
 def check_WHT_arrival(today_time): # to start perform new transfers that can be started cause of vehicles lack 
     if WHTransfer.objects.filter(arrival_time=today_time).exists(): #  -  по сути проверяет arrival_time предыдущего WHTransfer - потом освобождает тачки - и их можно использывать в след стейтменте
-        [wht.end_transfer() for wht in WHTransfer.objects.filter(arrival_time=today_time)]
+        [wht.end_transfer() for wht in WHTransfer.objects.filter(arrival_time=today_time).all()]
 
     if WHTransfer.objects.filter(started=False).exists(): # cause if i create 
-        [wht.perform_WHT() for wht in WHTransfer.objects.filter(started=False)]
+        [wht.perform_WHT() for wht in WHTransfer.objects.filter(started=False).all()]
 
-    if WHTransfer.objects.filter(arrival_to_start=today_time).exists():
-        [wht.vehicle_arrived_to_start() for wht in WHTransfer.objects.filter(arrival_to_start=today_time)]
+    if WHTransfer.objects.filter(arrival_to_start__lte=today_time).exists():
+        [wht.vehicle_arrived_to_start() for wht in WHTransfer.objects.filter(arrival_to_start__lte=today_time).all()]
     
 # def clean_WHTransferClaims(models.Model):
 #     threshold_days
@@ -595,11 +624,11 @@ def check_WHT_arrival(today_time): # to start perform new transfers that can be 
 class WHTransferClaim(models.Model):                # експаир тут не будет, тут будет сразу отправка на пересылку меж аптеками, если найдено лишнее у других
     """ for each whp can claim """
     # чистить WHTransferClaim будем, но чтоб не удалить whp -  on_delete=models.SET_NULL
-    from_wh = models.ForeignKey('WareHouse', related_name='WHTransferClaims', on_delete=models.SET_NULL)
-    to_wh = models.ForeignKey('WareHouse', related_name='WHTransferClaims', on_delete=models.SET_NULL)
-    product = models.ForeignKey('Product', related_name='WHTransferClaims', on_delete=models.SET_NULL)
+    from_wh = models.ForeignKey('WareHouse', related_name='WHTransferClaims_from', on_delete=models.SET_NULL, null=True)
+    to_wh = models.ForeignKey('WareHouse', related_name='WHTransferClaims_to', on_delete=models.SET_NULL, null=True)
+    product = models.ForeignKey('Product', related_name='WHTransferClaims', on_delete=models.SET_NULL, null=True)
     # whtransfer = models.ForeignKey(WHTransfer, related_name='WHTransferClaims', on_delete=models.CASCADE)
-    quantity = models.IntegerField(max_length=10)
+    quantity = models.IntegerField()
     accepted = models.BooleanField(default=False)
     started = models.BooleanField(default=False)
     performed = models.BooleanField(default=False)
@@ -644,11 +673,11 @@ class WHTransferClaim(models.Model):                # експаир тут не
 #                 end_addr = WareHouse.objects.get(id=wh1_id).address.full_address
 #                 #       get_simulation().vehicles_num < get_simulation().warehouse_num, то мы домножаем
 #                 #       но при пурчейзовском трансфере тоже домножаем, но там будет больше аптек, а знач и доставка будет дольше
-#                 spended_days = ((get_ph_data.get_route_time_to_wh(start_addr, end_addr))/60/60/24)* #* get_simulation().delivery_added_time_koef * get_simulation().num_of_phs_on_1_vehicle # 0.4*1.15*11
+#                 spended_days = ((algs.get_route_time_to_wh(start_addr, end_addr))/60/60/24)* #* get_simulation().delivery_added_time_koef * get_simulation().num_of_phs_on_1_vehicle # 0.4*1.15*11
 
 #                 arrival_day = get_simulation().today + datetime.timedelta(spended_days)
 
-#                 way_costs = (get_ph_data.get_route_distance_to_wh(start_addr, end_addr) / 100000) * vehicle_consumption * fuel_price
+#                 way_costs = (algs.get_route_distance_to_wh(start_addr, end_addr) / 100000) * vehicle_consumption * fuel_price
 
 #                 WHTransfer.objects.create(arrival_day=arrival_day, way_costs=way_costs)# wh1_id
 
@@ -665,7 +694,7 @@ class WHTransferClaim(models.Model):                # експаир тут не
 
 def get_quantity_of_whp_to_purchase(whp):
     # 28/7 * 20 == 80 продуктов в среднем за 4 недели продасться \\ ибо мы как раз и будем ждать время по threshold_days по изх покупке и доставке их в аптеку
-    return (get_simulation().normal_purch_days / wph.threshold_days) * wph.threshold # (28 / 7) * 
+    return (get_simulation().normal_purch_days / whp.threshold_days) * whp.threshold # (28 / 7) * 
 
 def get_WHTransferClaim_accepttion(whtcs):
     # разпределить whtc по аптекам 
@@ -675,7 +704,7 @@ def get_WHTransferClaim_accepttion(whtcs):
 
     for to_wh in to_wh_s:
         for from_wh in from_wh_s:
-            whtc_wh_pair = WHTransferClaim.objects.filter(from_wh=from_wh, to_wh=to_wh)
+            whtc_wh_pair = WHTransferClaim.objects.filter(from_wh=from_wh, to_wh=to_wh).all() 
             quantity = sum(i.quantity for i in whtc_wh_pair)
             if quantity >= get_simulation().number_to_dispatch:
                 WHTransferClaim.objects.filter(from_wh=from_wh, to_wh=to_wh).update(accepted=True) #  и отсюда прямиком в трансфер WHTransfer ( при его проверке в конце каждого дня )
@@ -683,21 +712,21 @@ def get_WHTransferClaim_accepttion(whtcs):
                 for i in whtc_wh_pair:
                     WHProduct.objects.filter(warehouse=from_wh, product=i.product).update(soon_expire=True)
 
-                    whp = WHProduct.objects.filter(warehouse=from_wh, product=i.product)
-
-                    PurchaseClaim.objects.create(quantity=get_quantity_of_whp_to_purchase(whp), whp=whp)
-
+                    whps = WHProduct.objects.filter(warehouse=from_wh, product=i.product).all() 
+                    for whp in whps:
+                        PurchaseClaim.objects.create(quantity=get_quantity_of_whp_to_purchase(whp), whp=whp)
+                # /\/\ TODO ERROR from_wh == to_wh
                 WHTransfer.objects.create(from_wh=from_wh, to_wh=to_wh) # WHTransferClaim.objects.filter(from_wh=from_wh, to_wh=to_wh, accepted=True)
 
 
 # WHTransferClaim claims witch will executed (they accepted)
 def set_transfer_products(): # one time in 4 week normally should expire 28 / 7
     """ создаем WHTransferClaim потом WHTransfer и PurchaseClaim а потом еще PurchaseClaim"""
-    whps_to_WHTransferClaim = WHProduct.objects.filter(quantity=0) # те что оч важно быро доставить ( а сразу пишем в покупку к вендору  но и в WHTransferClaim для заимствования из других аптек - если там нет лишнего - то ничего не делаем)
-    whps_from_WHTransferClaim =  WHProduct.objects.filter(soon_expire=False)
+    whps_to_WHTransferClaim = WHProduct.objects.filter(quantity=0).all()  # те что оч важно быро доставить ( а сразу пишем в покупку к вендору  но и в WHTransferClaim для заимствования из других аптек - если там нет лишнего - то ничего не делаем)
+    whps_from_WHTransferClaim =  WHProduct.objects.filter(soon_expire=False).all() 
 
     # для того чтоб дважды не заказывать сун експаир из get_WHTransferClaim_accepttion и отсюдова - делаем запрос на сун_експаир до get_WHTransferClaim_accepttion
-    whps_to_PurchaseClaim = WHProduct.objects.filter(soon_expire=True)  # те что не оч важно быро доставить ( а сразу пишем в покупку к вендору)
+    whps_to_PurchaseClaim = WHProduct.objects.filter(soon_expire=True).all()  # те что не оч важно быро доставить ( а сразу пишем в покупку к вендору)
 
     # whs_from_WHTC = 
     # products одинаковые но с разных аптек
@@ -707,13 +736,13 @@ def set_transfer_products(): # one time in 4 week normally should expire 28 / 7
     # from_wh_s = [[] for i in range(len(whps_from_WHTransferClaim))]
     # to_wh_s = []
     for whp1 in whps_from_WHTransferClaim: 
-        for wph2 in whps_to_WHTransferClaim:
-            dispathed_quantity = (wph1.quantity - wph1.threshold)
+        for whp2 in whps_to_WHTransferClaim:
+            dispathed_quantity = (whp1.quantity - whp1.threshold)
             # if избыток более-равно недостатку - отсылаем с запасом , да так, чтоб у того от кого отослали сразу был в запрос уже на закупку у вендора
-            if dispathed_quantity >= wph2.expire_quantity: # check_WHTransferClaim_on_asseption приямо сдесь, чтоб зря не создавать клеймы
+            if dispathed_quantity >= whp2.expire_quantity: # check_WHTransferClaim_on_asseption приямо сдесь, чтоб зря не создавать клеймы
                 # сколько я могу послать из избыточной в недостаточную
                 # first WHTransferClaim creation
-                whtc = WHTransferClaim.objects.create(from_wh=whp1.warehouse, to_wh=wph2.warehouse, product=wph2.product, quantity=dispathed_quantity) # закупка на колличество которые запросили уже
+                whtc = WHTransferClaim.objects.create(from_wh=whp1.warehouse, to_wh=whp2.warehouse, product=whp2.product, quantity=dispathed_quantity) # закупка на колличество которые запросили уже
                 whtcs.append(whtc)
 
     get_WHTransferClaim_accepttion(whtcs)
@@ -764,9 +793,9 @@ class Sale(models.Model): # every day                                   # for ev
 
     # # substituted by random day_quantity_range
     # quantity_rate_per_day = models.FloatField(default=0.0) # для рандома при покупках за сутки
-    min_day_quantity = models.IntegerField(max_length=8)
-    max_day_quantity = models.IntegerField(max_length=8)
-    warehouse = models.ForeignKey('WareHouse', related_name='sales', on_delete=models.SET_NULL)  # for every pharmacy
+    min_day_quantity = models.IntegerField()
+    max_day_quantity = models.IntegerField()
+    warehouse = models.ForeignKey('WareHouse', related_name='sales', on_delete=models.SET_NULL, null=True)  # for every pharmacy
     # те которые закончились или скоро закончатся 
     # 1) те что закончились уже - ищем у других аптек пока что  и делаем клейм 
     # 2) те которые скоро истекут - просто в клейм (threshold*4 ( 4 weeks - month))
@@ -783,17 +812,15 @@ class Sale(models.Model): # every day                                   # for ev
 @receiver(pre_save, sender=Sale)
 def set_sale_quantity(sender, instance, *args, **kwargs):
     # if quantity is settled -> Sale already is performed
-    if not instance.total_price and not instance.whproducts:
-        whps = WHProduct.objects.filter(warehouse__id=instance.warehouse.id)
-        for whp in whps: 
-            # instance.whproducts.add(whp)
-            # transfer quantity
-
+    if not instance.total_price:# and not instance.whproducts:
+        whps = WHProduct.objects.filter(warehouse=instance.warehouse).all()
+        for whp in whps:
             # substituted by random day_quantity_range
             # saled_quantity = int(whp.self_rate * instance.quantity_rate_per_day * whp.quantity) # до нижнего порога округлит
-            saled_quantity = int(random.choice(range(self.min_day_quantity, self.max_day_quantity)) * whp.self_rate) # example: 5*0.8=int(4.0) or 4*1.2=int(5.0)
+            saled_quantity = int(random.choice(range(instance.min_day_quantity, instance.max_day_quantity)) * whp.self_rate) # example: 5*0.8=int(4.0) or 4*1.2=int(5.0)
             
             DemandForecasting.objects.create(saled_quantity=saled_quantity, wh=whp.warehouse, product=whp.product) # 4500 строк в дф в день
+            
             # whp.last_saled_quantity = saled_quantity
             if (whp.quantity - saled_quantity) >= 0:
                 whp.quantity = whp.quantity - saled_quantity
@@ -811,9 +838,9 @@ def set_sale_quantity(sender, instance, *args, **kwargs):
             instance.total_price += saled_quantity * whp.product.markup_price # int* decimal norm # but float do not :( -> use D(str())
             
             # after taht should refresh_from_db -> cause there instance.total_price still 0 but in db = saled_quantity * whp.product.markup_price
-            instance.refresh_from_db()
+            # instance.refresh_from_db()
         instance.tax = TaxRate.objects.get(name='for_Sale')
-        instance.save()
+        # instance.save()
         # отослать это все в активы и пассивы - не поодиночно - потому после создания сейла
 
         # сделать заявку на покупку недостающих товаров или товаров , которые вот-вот закончатся 
@@ -865,6 +892,12 @@ def perform_sale(sim):  # from simulation
     # DemandForecasting.objects.create()
         # Sale.objects.create(warehouse=wh, quantity_rate_per_day=sales_quantity_rate_ranges_per_day)
 
+def check_on_DFR(today):
+    if DemandForecastingReport.objects.filter(reported=False, date_to_report=today).exists():
+        for dfr in DemandForecastingReport.objects.filter(reported=False, date_to_report=today).all():
+            dfr.get_report()
+
+
 # # /\/\ TODO perform DF
 class DemandForecastingReport(models.Model): # # end month
     # from calendar import monthrange 
@@ -881,10 +914,11 @@ class DemandForecastingReport(models.Model): # # end month
     #   DemandForecastingReport.get_report()
     # if DemandForecastingReport.created
     created = MyDateField(auto_now_add=True)
-    date_to_report = models.DateField(blank=True)
+    date_to_report = models.DateField(blank=True, null=True)
     reported = models.BooleanField(default=False)
-    wh = models.ForeignKey("WareHouse", related_name='purchases', on_delete=models.CASCADE) # setting while creating потому что надо не потерятся какой Purchase заменять, с какой аптекой
-    demanded = ArrayField(models.IntegerField(max_length=10), blank=True)
+    wh = models.ForeignKey("WareHouse", related_name='DemandForecastingReports', on_delete=models.CASCADE) # setting while creating потому что надо не потерятся какой Purchase заменять, с какой аптекой
+    
+    demanded = ArrayField(models.IntegerField(), blank=True, null=True)
 
     def get_report(self):
         month_dfs = self.demand_forecastings.all()  # каждого продукта в аптеке ибо в сейлсах - DemandForecasting.objects.create для каждого продукта в аптеке
@@ -907,7 +941,7 @@ class DemandForecastingReport(models.Model): # # end month
 class DemandForecasting(models.Model): # daily on each whp 
     wh = models.ForeignKey('WareHouse', related_name='demand_forecastings', on_delete=models.CASCADE)
     product = models.ForeignKey('Product', related_name='demand_forecastings', on_delete=models.CASCADE)
-    saled_quantity = models.IntegerField(max_length=10) # м ы тут не указываем продажи а запросы только, потому именно saled_quantity записываем из сейлов
+    saled_quantity = models.IntegerField() # м ы тут не указываем продажи а запросы только, потому именно saled_quantity записываем из сейлов
     to_report = models.ForeignKey(DemandForecastingReport, related_name='demand_forecastings', on_delete=models.CASCADE)
     # sale_in_whs = models.ManyToManyField(Sale, related_name='demand_forecastings', on_delete=models.SET_NULL) # все сейлсы за день по каждой аптеке
 
@@ -915,14 +949,14 @@ class DemandForecasting(models.Model): # daily on each whp
 
 @receiver(pre_save, sender=DemandForecasting)
 def set_DF_values(sender, instance, *args, **kwargs):
-    if not instance.to_report:
-        DemandForecastingReport.objects.get(wh=instance.wh, reported=False)
-        instance.save()
+    if not hasattr(instance, "to_report"): # foreignkey onetoonefield check on hasattr - else just not instance.attr
+        instance.to_report = DemandForecastingReport.objects.get(wh=instance.wh, reported=False)
+        # instance.save()
 
 
 class WareHouse(models.Model):
     address = models.OneToOneField(Address, on_delete=models.CASCADE, related_name='warehouse')
-    pharmacy_number = models.IntegerField(max_length=10)
+    pharmacy_number = models.IntegerField()
 
 class Product(models.Model):
     """
@@ -943,7 +977,7 @@ class Product(models.Model):
     markup_price = models.FloatField(default=0.0)
     
     name = models.TextField()
-    dozation = models.CharField(max_length=30)
+    dozation = models.TextField()
     # kind = models.CharField(max_length=30) # таблетки, сироп, спрей, субстанция, порошок, напиток, пастилки, 
 
 @receiver(pre_save, sender=Product)
@@ -955,7 +989,7 @@ class WHProduct(models.Model):
     """
     Each product in each warehouse (and its quantity)
     """
-    quantity = models.IntegerField(max_length=10)
+    quantity = models.IntegerField()
     # last_saled_quantity = models.IntegerField(max_length=10, default=0) # сколько продали за последний раз - для подсчета полной прибыли по всей аптеке # can be blank if any sales before # после создания сейла по этому квонтити - обратно возвращаем =0
     product = models.ForeignKey(Product, related_name='whps', on_delete=models.CASCADE) # для такого то продукта такие  аптеки
     warehouse = models.ForeignKey(WareHouse, related_name='whps', on_delete=models.CASCADE) # для такой то аптеки такие типы продуктов
@@ -965,20 +999,20 @@ class WHProduct(models.Model):
 
     # substituted by random day_quantity_range
     self_rate = models.FloatField(default=0.0)
-    threshold = models.IntegerField(max_length=10)
-    threshold_days = models.IntegerField(max_length=10)
-    expire_quantity = models.IntegerField(max_length=10, default=0) # сколько не хватеат (сколько пользователи запросили, но не получили да сих пор)
+    threshold = models.IntegerField()
+    threshold_days = models.IntegerField()
+    expire_quantity = models.IntegerField(default=0) # сколько не хватеат (сколько пользователи запросили, но не получили да сих пор)
     soon_expire = models.BooleanField(default=False)
 
 
 class Department(models.Model): # only 1 model in erp // cause only 1 dpt on all company
-    organisation = models.CharField(max_length=30) # 'Сеть Аптек "Копейка"'
-    address = models.CharField(max_length=30) # "Nezalezhnosti Blvd, 12, Brovary, Kyivs'ka oblast, Ukraine, 07400"
+    organisation = models.TextField() # 'Сеть Аптек "Копейка"'
+    address = models.TextField() # "Nezalezhnosti Blvd, 12, Brovary, Kyivs'ka oblast, Ukraine, 07400"
 
 
 class Fuel(models.Model):
     # from site https://index.minfin.com.ua/markets/fuel/detail/
-    fuel_type = models.CharField(max_length=30) # A-95   # А 92  # ДТ    # Газ 
+    fuel_type = models.TextField() # A-95   # А 92  # ДТ    # Газ 
     fuel_price = models.FloatField(default=0.0) # 28.73  # 27.00 # 27.80 # 13.20
 
 
@@ -986,7 +1020,7 @@ class Vehicle(models.Model):
     # from site  tax on price https://www.juridicheskij-supermarket.ua/page_car-tax.html
     # from site http://www.navi39.ru/faqarticle/norma-rashoda-topliva/126-bazovye-normy-rashoda-topliva-dlya-gruzovikov-i-gruzovogo-transporta.html
     vehicle_consumption = models.FloatField(default=0.0) # 9.0
-    vehicle_name = models.CharField(max_length=30) # Ford Transit FT-190L
+    vehicle_name = models.TextField() # Ford Transit FT-190L
     vehicle_price = models.FloatField(default=0.0) # 25000.00
     fuel = models.ForeignKey(Fuel, related_name='vehicles', on_delete=models.CASCADE)
     # every month changed by perform_Veh_repair_Payment()

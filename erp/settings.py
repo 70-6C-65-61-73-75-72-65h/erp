@@ -42,6 +42,9 @@ INSTALLED_APPS = [
     'accounts.apps.AccountsConfig',
     'assessments.apps.AssessmentsConfig',
     'simulation.apps.SimulationConfig',
+    'company_operations.apps.CompanyOperationsConfig',
+    'general_accounting.apps.GeneralAccountingConfig',
+    # 'general_accounting.apps.GeneralAccountingConfig',
     
     'rest_framework',
     'psycopg2',

@@ -17,15 +17,16 @@ import simulation.models as sim
 # # будет рекурсивное импртирование, если будем использывать address тут и импортить его в операции предприятия,, ибо там отсюда импортится вендор
 # # WareHouse in c_o and Vendor in accounts
 
+# form for Address
 #/\/\ address using in wh and in profiles> so its mixin
 class Address(models.Model):
     # address
     # example: address_line = "ulʹvar Oleksandriysʹkyy, 95", city = "Bila Tserkva", Kyivs'ka oblast, country= 'Ukraine', postal_code='09100'
-    address_line = models.CharField(max_length=128) # street // prospect // enter there an address # first 2 elems in list after strip by ',' 
-    city = models.CharField(max_length=64)
-    region = models.CharField(max_length=128)
-    country = models.CharField(max_length=50)
-    postal_code = models.CharField(max_length=7)
+    address_line = models.TextField() # street // prospect // enter there an address # first 2 elems in list after strip by ',' 
+    city = models.CharField(max_length=100)
+    region = models.CharField(max_length=100)
+    country = models.CharField(max_length=100)
+    postal_code = models.CharField(max_length=100)
     full_address = models.TextField()
 
     # def full_address(self, separator=", "):
@@ -53,6 +54,6 @@ class MyDateField(models.DateField):
             return super().pre_save(model_instance, add)
 
 
-class CompanyConsts(models.Model):
-    name = models.CharField(max_length=60)
-    value = models.CharField(max_length=60) # CompanyConsts.value = str(value) - >  value = ast.literal_eval(CompanyConsts.value) # or float or integer or str can be
+# class CompanyConsts(models.Model):
+#     name = models.CharField(max_length=60)
+#     value = models.CharField(max_length=60) # CompanyConsts.value = str(value) - >  value = ast.literal_eval(CompanyConsts.value) # or float or integer or str can be

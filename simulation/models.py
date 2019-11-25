@@ -30,17 +30,17 @@ class Simulation(models.Model):
     pharmacys_sizes = models.FloatField()
     department_size = models.FloatField()
     tax_property_size_limit = models.FloatField()
-    pharmacys_spendingds = models.ArrayField(models.IntegerField(), size=2)
-    department_spendingds = models.ArrayField(models.IntegerField(), size=2)
+    pharmacys_spendingds = ArrayField(models.IntegerField(), size=2)
+    department_spendingds = ArrayField(models.IntegerField(), size=2)
 
     # to Veh_repair_Payment
-    veh_repair_price_month = models.ArrayField(models.IntegerField(), size=2)
+    veh_repair_price_month = ArrayField(models.IntegerField(), size=2)
     vehicles_num = models.IntegerField() # 4  - no !!!    but  11
     # vehicles and fuel_price and fuel_type are static
-    vehicle_name = models.CharField(max_length=60, default='Ford Transit FT-190L')
+    vehicle_name = models.CharField(max_length=200, default='Ford Transit FT-190L')
     vehicle_price = models.FloatField() # 25000.0
     fuel_price = models.FloatField() # 28.73
-    fuel_type = models.CharField(max_length=60)
+    fuel_type = models.CharField(max_length=100)
     vehicle_consumption = models.FloatField() # 9.0
     
     # Purchase and WHTransfer for Purchase
@@ -57,15 +57,15 @@ class Simulation(models.Model):
 
     # for products
     number_of_products_names = models.IntegerField() # 100
-    product_markup_rate = models.ArrayField(models.FloatField(), size=2) # 0.25, 0.3
-    product_cost_price = models.ArrayField(models.FloatField(), size=2)
+    product_markup_rate = ArrayField(models.FloatField(), size=2) # 0.25, 0.3
+    product_cost_price = ArrayField(models.FloatField(), size=2)
 
     #for whproducts
-    whp_self_rate = models.ArrayField(models.FloatField(), size=2) # 0.7, 1.5
-    whp_quantity = models.ArrayField(models.IntegerField(), size=2) # 100, 200
+    whp_self_rate = ArrayField(models.FloatField(), size=2) # 0.7, 1.5
+    whp_quantity = ArrayField(models.IntegerField(), size=2) # 100, 200
 
     # for sale                                      for 1 whp in day
-    day_quantity_range = models.ArrayField(models.IntegerField(), size=2) # 2, 5
+    day_quantity_range = ArrayField(models.IntegerField(), size=2) # 2, 5
     
     # SalaryPayment in accounts.worker creation in _up   == 8 types really worx
     salary_pharmacist = models.FloatField(default=7000.0) # salary_pharmacist_num =  warehouse_num*3  #models.ArrayField()
@@ -111,9 +111,9 @@ class Simulation(models.Model):
 
 @receiver(pre_save, sender=Simulation)
 def Simulation_set_vals(sender, instance, *args, **kwargs):
-    if instance.auto_populated:
+    # if instance.auto_populated:
 
-    if not instance.num_of_phs_on_1_vehicle:
+    if not instance.num_of_phs_on_1_vehicle: #not hasattr(instance, "num_of_phs_on_1_vehicle"): # not instance.num_of_phs_on_1_vehicle:
         instance.num_of_phs_on_1_vehicle = int(instance.warehouse_num / instance.vehicles_num) # 11
 
         instance.pharmacist_num = instance.warehouse_num * instance.pharmacist_per_wh
@@ -121,7 +121,7 @@ def Simulation_set_vals(sender, instance, *args, **kwargs):
         instance.loader_num = instance.vehicles_num * instance.loader_per_vehicle
         instance.driver_num = instance.vehicles_num * instance.driver_per_vehicle
 
-        instance.save()
+        # instance.save()
 
 def get_simulation():
     return Simulation.objects.all().last()

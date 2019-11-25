@@ -1,4 +1,4 @@
-from .models import TrialBalance, OperativeAccounts, Assets, Passives
+from general_accounting.models import TrialBalance, OperativeAccounts, Assets, Passives
 
 # popular chain of operations
 # class operationsChains:
@@ -26,7 +26,7 @@ def AC_PD(acc1, acc2, value):
 
 
 def get_op_acc_by_number(num):
-    OperativeAccounts.objects.get(number=str(num))
+    return OperativeAccounts.objects.get(number=str(num))
 
 # in this funcs we actually describe double_account_sign ( проводка ) 
 

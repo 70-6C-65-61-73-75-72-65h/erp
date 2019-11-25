@@ -3,7 +3,7 @@ import time
 import os
 
 import pickle
-from get_ph_data import read_apt_matrix, read_apt_names_matrix, collect_data, read_apt_routes  # without a key
+from .get_ph_data import read_apt_matrix, read_apt_names_matrix, collect_data, read_apt_routes  # without a key
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # doesnt worx with meters
 
@@ -349,6 +349,8 @@ def get_route_time_to_wh(addr1, addr2): # get time for that route
     for r in read_uprgated_routes():
         if r[0]["start_address"]==addr1 and r[0]["end_address"]==addr2 or r[0]["start_address"]==addr2 and r[0]["end_address"]==addr1 :
             route = r[0]
+    if route is None:
+        print(f'\n{addr1}\n{addr2}\n')
     return route["duration"]
 
 

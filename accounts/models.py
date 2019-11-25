@@ -20,7 +20,7 @@ from mixins.models import Address, MyDateField
 # Create your models here.
 class Profile(models.Model): # fields
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    bio = models.TextField(max_length=500, blank=True)
+    bio = models.TextField(blank=True, null=True)
     # location = models.CharField(max_length=30, blank=True)
     birth_date = models.DateField(null=True, blank=True)
     slug = models.SlugField(unique=True) # unigue url must be
@@ -35,7 +35,7 @@ class Profile(models.Model): # fields
 
 
     # how to add bank_acc to client or some_who
-    bank_acc = models.CharField(max_length=16, blank=True)
+    bank_acc = models.CharField(max_length=16, blank=True, null=True)
     # def decor_role_changing(self, func):
     #     def inner(self, *args, **kwargs):
     #         # args - 
@@ -44,96 +44,122 @@ class Profile(models.Model): # fields
     #     return inner
 
     def group_changing(self, new_name):
+        # print('group changing start')
+        # print(self.user.groups.all())
         self.user.groups.clear()
+        # print(self.user.groups.all())
+        # print('group changing clear')
         # if self.user.groups.filter(name=old_name).exists():
-        group = Group.objects.get(name=new_name)
+        group = Group.objects.get_or_create(name=new_name)[0]
+        # print(group)
+        # print('group changing create new')
+        # group.user_set.add(self.user)
         self.user.groups.add(group)
+        self.user.save()
+        # print('group changing added to user')
         # (self.user.groups._meta.get_field(f'{old_name}_set')).remove(self.user)
-        self.save()
+        # self.user.save()
+        # self.save()
         # self.user.groups.save() ?????
  
     def role_to_vendor(self, organisation, address):
         try:
-            assert self.client is not None
-            self.client.delete()
-            self.group_changing('vendor')
-            Vendor.objects.create(profile=self, organisation=organisation, address=address)
-        except Exception:
-            pass
-        try:
-            assert self.worker is not None
-            self.worker.delete()
-            self.group_changing('vendor')
-            Vendor.objects.create(profile=self, organisation=organisation, address=address)
-        except Exception:
-            pass
-        try:
-            assert self.vendor is not None
-            print('Its already a vendor role')
-            return False
+        #     # assert self.client.all() is not None
+            print('start role_to_vendor')
+            if hasattr(self, 'client'):
+                # print('hasattr client')
+                self.client.delete()
+                # print('hasattr client deleted')
+                self.group_changing('vendor')
+                # print('group changed to vendor')
+                Vendor.objects.create(profile=self, organisation=organisation, address=address)
+                # print('vendor obj created')
+            elif hasattr(self, 'worker'):
+                self.worker.delete()
+                self.group_changing('vendor')
+                Vendor.objects.create(profile=self, organisation=organisation, address=address)
+            elif hasattr(self, 'vendor'):
+                print('Its already a vendor role')
+                return False
+        # except Exception:
+        #     pass
+        # try:
+            # assert self.worker is not None
+            # self.worker.delete()
+            # self.group_changing('vendor')
+            # Vendor.objects.create(profile=self, organisation=organisation, address=address)
+        # except Exception:
+        #     pass
+        # try:
+            # assert self.vendor is not None
+            # print('Its already a vendor role')
+            # return False
         except Exception:
             print('some fucking error')
             return None
 
     def role_to_worker(self, kind, salary, address):
         try:
-            assert self.client is not None
-            self.client.delete()
-            self.group_changing(f'worker_{kind}')
-            Worker.objects.create(profile=self, kind=kind, salary=salary, address=address)
-            return True
-        except Exception:
-            pass
-        try:
-            assert self.vendor is not None
-            self.vendor.delete()
-            self.group_changing(f'worker_{kind}')
-            Worker.objects.create(profile=self, kind=kind, salary=salary, address=address)
-            return True
-        except Exception:
-            pass
-        try:
-            assert self.worker is not None
-            print('Its already a worker role')
-            return False
+            if hasattr(self, 'client'):
+                self.client.delete()
+                self.group_changing(f'worker_{kind}')
+                Worker.objects.create(profile=self, kind=kind, salary=salary, address=address)
+            elif hasattr(self, 'vendor'):
+                self.vendor.delete()
+                self.group_changing(f'worker_{kind}')
+                Worker.objects.create(profile=self, kind=kind, salary=salary, address=address)
+            elif hasattr(self, 'worker'):
+                print('Its already a worker role')
+                return False
         except Exception:
             print('some fucking error')
             return None
 
     def change_worker_class(self, kind, salary):
         try:
-            assert self.worker is not None
-            self.worker.kind = kind
-            self.worker.salary = salary
-            self.worker.refresh_from_db()
-            self.worker.save()
-            self.group_changing(f'worker_{kind}')
-            return True
+            if hasattr(self, 'worker'):
+                self.worker.kind = kind
+                self.worker.salary = salary
+                # self.worker.all().last().refresh_from_db()
+                self.worker.save()
+                self.group_changing(f'worker_{kind}')
+                return True
         except Exception:
             print('there is no such worker models')
             return False
 
     def role_to_client(self):
         try:
-            assert self.vendor is not None
-            self.vendor.delete()
-            self.group_changing('client')
-            Client.objects.create(profile=self)
-            return True
-        except Exception:
-            pass
-        try:
-            assert self.worker is not None
-            self.worker.delete()
-            self.group_changing('client')
-            Client.objects.create(profile=self)
-            return True
-        except Exception:
-            pass
-        try:
-            assert self.client is not None
-            print('Its already a client role')
-            return False
+            if hasattr(self, 'vendor'):
+                self.vendor.delete()
+                self.group_changing('client')
+                Client.objects.create(profile=self)
+            elif hasattr(self, 'worker'):
+                self.worker.delete()
+                self.group_changing('client')
+                Client.objects.create(profile=self)
+            elif hasattr(self, 'client'):
+                print('Its already a client role')
+                return False
+        #     assert self.vendor is not None
+        #     self.vendor.delete()
+        #     self.group_changing('client')
+        #     Client.objects.create(profile=self)
+        #     return True
+        # except Exception:
+        #     pass
+        # try:
+        #     assert self.worker is not None
+        #     self.worker.delete()
+        #     self.group_changing('client')
+        #     Client.objects.create(profile=self)
+        #     return True
+        # except Exception:
+        #     pass
+        # try:
+        #     assert self.client is not None
+        #     print('Its already a client role')
+        #     return False
         except Exception:
             print('some fucking error')
             return None
@@ -221,8 +247,8 @@ class Profile(models.Model): # fields
         markdown_text = markdown(content)
         return mark_safe(markdown_text)
 
-    class Meta:
-        ordering = ["-user__date_joined"]
+    # class Meta:
+    #     ordering = ["-id"]
 
 
 def create_slug(instance, new_slug=None):
@@ -250,18 +276,25 @@ def pre_save_post_receiver(sender, instance, *args, **kwargs):
     if not instance.slug:
         instance.slug = create_slug(instance)
 
+# надо добавить поля в User на все данные для клиента и тд
+# указывать при создании role_name = TextField() if instance.role_name == "client" -> Client.objects.create(profile=instance)
+# if instance.role_name == "worker" Client.objects.create(profile=instance) kind=kind, salary=salary, address=address
+
 # опаа проблема, а как редачить профайл то? будет новые клиенты создавать чтоли?)
 # creation Client right after Profile creation
 @receiver(post_save, sender=Profile)
 def update_user_profile(sender, instance, created, **kwargs):
     """Äfter Profile creation we immidiatly create it as Client, but admin can change it to the Vendor or Worker"""
     if created:
-        try:
-            # если хоть раз уже создавали клиента ( даже если потом его удалили), то поле останется, только станет нуль 
-            instance._meta.get_field('client')
-        except FieldDoesNotExist:
+        if not hasattr(instance, "client") and not hasattr(instance, "vendor") and not hasattr(instance, "worker"):
             Client.objects.create(profile=instance)
-    instance.profile.save()
+        # try:
+        #     # если хоть раз уже создавали клиента ( даже если потом его удалили), то поле останется, только станет нуль 
+        #     # instance._meta.get_field('client')
+        #     instance.client.all().exists()
+        # except FieldDoesNotExist:
+        #     Client.objects.create(profile=instance)
+    # instance.save()
 
 
 #/\/\ mb error in onetone field by 2 sides relation
@@ -444,8 +477,8 @@ def update_user_profile(sender, instance, created, **kwargs):
 # /\/\ у админа только доступ к созданию моделей Worker и Vendor
 
 class Vendor(models.Model): # user in ProfileMixin - физ представитель производителя, кри представитель производителя, через которого все закупки идут
-    organisation = models.CharField(max_length=100)
-    profile = models.OneToOneField(Profile, on_delete=models.SET_NULL, related_name='vendor')
+    organisation = models.TextField()
+    profile = models.OneToOneField(Profile, on_delete=models.SET_NULL, related_name='vendor', null=True)
     address = models.OneToOneField(Address, on_delete=models.PROTECT, related_name='vendor')
     # user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='vendor')
     # address = models.OneToOneField(Address, on_delete=models.CASCADE, related_name='vendor')
@@ -465,15 +498,15 @@ class Vendor(models.Model): # user in ProfileMixin - физ представит
 
 
 class Worker(models.Model):
-    profile = models.OneToOneField(Profile, on_delete=models.SET_NULL, related_name='worker') # 
+    profile = models.OneToOneField(Profile, on_delete=models.SET_NULL, related_name='worker', null=True) # 
     address = models.OneToOneField(Address, on_delete=models.CASCADE, related_name='worker')
-    kind = models.CharField(max_length=30) # setting in form with casees (HR, Pharmacist, Cleaner ...)
+    kind = models.CharField(max_length=100) # setting in form with casees (HR, Pharmacist, Cleaner ...)
     salary = models.FloatField(default=0.0)# как таковой пересылки на счет нет, подсчитывается пока в селерипеймент все скопом кучей - ибо толку то - все равно мы послать на счет не сможем
     birth_date = models.DateField(null=True, blank=True)
     # salary .... birth_date (mb from profile) and so on
 
 class Client(models.Model):
-    profile = models.OneToOneField(Profile, on_delete=models.SET_NULL, related_name='client')
+    profile = models.OneToOneField(Profile, on_delete=models.SET_NULL, related_name='client', null=True)
     # address = models.OneToOneField(Address, on_delete=models.CASCADE, related_name='client')
 
 # class Director(Profile, Address): # like admin in rights

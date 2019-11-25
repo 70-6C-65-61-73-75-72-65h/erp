@@ -1,6 +1,7 @@
 import os
 import shutil
 import _drop_tables
+
 _drop_tables.do()
 
 # drop cache
@@ -34,18 +35,41 @@ except Exception as ex:
 
 # create db
 try:
-    # firstly posts
-    # posts_index = packs.index('posts') # 'posts' - name of posts app
-    # posts = packs[posts_index] 
-    # # post use after
+    # firstly simulation
+    simulation_index = packs.index('simulation') # 'simulation' - name of simulation app
+    simulation = packs[simulation_index] 
+    # # simulation use after
 
-    # os.system(f'mkdir {posts}\migrations')
-    # os.system(f'type nul > {posts}\migrations\__init__.py')
-    # os.system('manage.py migrate')
-    # os.system('manage.py makemigrations')
-    # os.system('manage.py migrate')
+    os.system(f'mkdir {simulation}\migrations')
+    os.system(f'type nul > {simulation}\migrations\__init__.py')
+    os.system('manage.py migrate')
+    os.system('manage.py makemigrations')
+    os.system('manage.py migrate')
 
-    # del packs[posts_index]
+    del packs[simulation_index]
+    
+    mixins_index = packs.index('mixins')
+    mixins = packs[mixins_index] 
+
+    os.system(f'mkdir {mixins}\migrations')
+    os.system(f'type nul > {mixins}\migrations\__init__.py')
+    os.system('manage.py migrate')
+    os.system('manage.py makemigrations')
+    os.system('manage.py migrate')
+
+    del packs[mixins_index]
+
+    general_accounting_index = packs.index('general_accounting')
+    general_accounting = packs[general_accounting_index] 
+
+    os.system(f'mkdir {general_accounting}\migrations')
+    os.system(f'type nul > {general_accounting}\migrations\__init__.py')
+    os.system('manage.py migrate')
+    os.system('manage.py makemigrations')
+    os.system('manage.py migrate')
+
+    del packs[general_accounting_index]
+
 
     # then all others
     for pack in packs:

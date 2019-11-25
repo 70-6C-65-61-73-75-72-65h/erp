@@ -30,7 +30,7 @@ from django.db.models.signals import post_save, pre_save
 
 
 class TaxRate(models.Model):
-    name = models.CharField(max_length=30)
+    name = models.CharField(max_length=100)
     rate = models.FloatField(default=0.2)
 
 
@@ -117,16 +117,16 @@ class TrialBalance(models.Model): # каждая новая строка - но�
     end_saldo_debit = models.FloatField(default=0.0) # Decimal
 
     date_created = MyDateField(auto_now_add=True)
-    date_report = MyDateField(editable=True, blank=True)# from there we can get the ""period""
-    period = models.IntegerField(default=0, max_length=10)
+    date_report = MyDateField(editable=True, blank=True, null=True)# from there we can get the ""period""
+    period = models.IntegerField(default=0)
 
-    dicts_of_accs = models.TextField(blank=True) # TODO change on json or array of dicts (its nevermind)
+    dicts_of_accs = models.TextField(blank=True, null=True) # TODO change on json or array of dicts (its nevermind)
 
     # class Meta:
     #     ordeding = ['-date_report']
 
     def get_dicts_of_accs(self):
-        return ast.literal_eval(self.dicts_of_accs)
+        return literal_eval(self.dicts_of_accs)
 
     def get_used_accs_with_values(self):
         """ assets and passives по 1 шт с каждой стороны ( либо по дебету либо по кредиту ) """
@@ -135,16 +135,16 @@ class TrialBalance(models.Model): # каждая новая строка - но�
         passives = self.passives.all()
         assets_ids = [ass.id for ass in assets]
         passives_ids = [pas.id for pas in passives]
-        used_accs_nums = [[ass.number in ass in assets], [pas.number in pas in passives]]
+        used_accs_nums = [[ass.number for ass in assets], [pas.number for pas in passives]]
         used_accs_nums = sum(used_accs_nums, [])
         dicts_of_accs = []
         totals = {'accs_credits_total': None, 'accs_debits_total': None, 'turnover_credit': None, 'turnover_debit': None}
-        used_accs = OperativeAccounts.objects.filter(number__in=used_accs_nums)
+        used_accs = OperativeAccounts.objects.filter(number__in=used_accs_nums).all()
 
         for used_acc in used_accs:
             # if ass or passives relevant for that TB -> calc them
-            used_pass = used_acc.passives.filter(id__in=passives_ids)
-            used_ass = used_acc.assets.filter(id__in=assets_ids)
+            used_pass = used_acc.passives.filter(id__in=passives_ids).all()
+            used_ass = used_acc.assets.filter(id__in=assets_ids).all()
             
             acc_credits_total = sum([pas.credit_value for pas in used_pass]) - sum([ass.credit_value for ass in used_ass]) 
             acc_debits_total = sum([ass.debit_value for ass in used_ass]) - sum([pas.debit_value for pas in used_pass])
@@ -189,34 +189,38 @@ class TrialBalance(models.Model): # каждая новая строка - но�
         # credit_set = 
 
     def get_report(self):
-        """"after call creating report of TrialBalance
+        """after call creating report of TrialBalance
         can call only after creating of TrialBalance instance
-        """"
-        # перед подсчетом всех компонентов необходимо создать новый баланс, чтоб туда могли записыватся те активы и пассивы которые создаются пока производятся подсчеты для этого отчета
-        TrialBalance.objects.create() # -> this is the last TB, that isnt reported right now but used for future assets and passives 
-        if TrialBalance.objects.order_by("id")[1] == self.id: # if it is the first created TB # cause descending order for id  ( cause maximum_id==last_id )
-            self.start_saldo_credit = 0
-            self.start_saldo_debit = 0
-        else:
-            # that mean that there is more than 1 object in queryset ( we get penultimate )
-            self.start_saldo_credit = (TrialBalance.objects.order_by("id")[2]).end_saldo_credit
-            self.start_saldo_debit = (TrialBalance.objects.order_by("id")[2]).end_saldo_debit
+        """
+        if self.passives.all().exists() and not self.active.all().exists(): #hasattr(self, "passives") and hasattr(self, "assets"):
+            # перед подсчетом всех компонентов необходимо создать новый баланс, чтоб туда могли записыватся те активы и пассивы которые создаются пока производятся подсчеты для этого отчета
+            TrialBalance.objects.create() # -> this is the last TB, that isnt reported right now but used for future assets and passives 
+            if TrialBalance.objects.order_by("id")[1] == self.id: # if it is the first created TB # cause descending order for id  ( cause maximum_id==last_id )
+                self.start_saldo_credit = 0
+                self.start_saldo_debit = 0
+            else:
+                # that mean that there is more than 1 object in queryset ( we get penultimate )
+                self.start_saldo_credit = (TrialBalance.objects.order_by("id")[2]).end_saldo_credit
+                self.start_saldo_debit = (TrialBalance.objects.order_by("id")[2]).end_saldo_debit
 
-         # calc_turnover()
-        dicts_of_accs, totals = get_used_accs_with_values()
-        self.dicts_of_accs = str(dicts_of_accs)
-        # dicts_of_accs = ast.literal_eval(self.dicts_of_accs)
-        self.end_saldo_credit = self.start_saldo_credit + totals["all_credits_total"]
-        self.end_saldo_debit = self.start_saldo_credit + totals["all_debits_total"]
-        self.turnover_credit = totals['all_turnover_credit']
-        self.turnover_debit = totals['all_turnover_debit']
-        # ast.literal_eval(self.dicts_of_accs)
-        self.reported = True
-        # self.date_report = datetime.datetime.today() # tiemzone.now()
-        self.date_report = get_simulation().today
-        self.period = int(self.date_created - self.date_report)
-        # self.refresh_from_db() # or not needed
-        self.save() # super().save() # hz
+            # calc_turnover()
+            dicts_of_accs, totals = self.get_used_accs_with_values()
+            self.dicts_of_accs = str(dicts_of_accs)
+            # dicts_of_accs = ast.literal_eval(self.dicts_of_accs)
+            self.end_saldo_credit = self.start_saldo_credit + totals["all_credits_total"]
+            self.end_saldo_debit = self.start_saldo_credit + totals["all_debits_total"]
+            self.turnover_credit = totals['all_turnover_credit']
+            self.turnover_debit = totals['all_turnover_debit']
+            # ast.literal_eval(self.dicts_of_accs)
+            self.reported = True
+            # self.date_report = datetime.datetime.today() # tiemzone.now()
+            self.date_report = get_simulation().today
+            self.period = int(self.date_created - self.date_report)
+            # self.refresh_from_db() # or not needed
+            self.save() # super().save() # hz
+            return True
+        else:
+            return False
 
 
 # @receiver(pre_save, sender=TrialBalance)
@@ -239,26 +243,36 @@ class AccountingBalance(models.Model): # каждая новая строка - 
     passives_total = models.FloatField(default=0.0)
     reported = models.BooleanField(default=False) #  1 - that instance of AccountingBalance was reported
     date_created = MyDateField(auto_now_add=True) # right after previous reported ( so there from we can get period)
-    date_report = MyDateField(editable=True, blank=True)#models.DateField(auto_now_add=True)                                # hz zachem esli editable
-    period = models.IntegerField(default=0, max_length=10) # i shouldnt edit not from that class aka ""private""
+    date_report = MyDateField(editable=True, blank=True, null=True)#models.DateField(auto_now_add=True)                                # hz zachem esli editable
+    period = models.IntegerField(default=0) # i shouldnt edit not from that class aka ""private""
 
     def get_assets(self):
-        return self.assets.all()
+        if self.assets.all().exists():
+            return self.assets.all()
+        else:
+            return None
 
     def get_passives(self):
-        return self.passives.all()
+        if self.passives.all().exists():
+            return self.passives.all()
+        else:
+            return None
 
     def get_report(self): #  TODO check working
-        # self.assets.objects.filter()
-        # Assets.objects.filter(assets__ab_id=self.id)
-        self.assets_total = sum([(asset.debit_value - asset.credit_value) for asset in self.assets.all()]) # check without []
-        self.passives_total = sum([(passive.debit_value - passive.credit_value) for passive in self.passives.all()])
-        self.reported = True
-        self.date_report = get_simulation().today # tiemzone.now()
-        self.period = int(self.date_created - self.date_report)
-        # self.refresh_from_db() # or not needed
-        self.save() # super().save() # hz
-        AccountingBalance.objects.create() # then ass and pass ad to it
+        if self.passives.all().exists() and self.assets.all().exists():
+            # self.assets.objects.filter()
+            # Assets.objects.filter(assets__ab_id=self.id)
+            self.assets_total = sum([(asset.debit_value - asset.credit_value) for asset in self.assets.all()]) # check without []
+            self.passives_total = sum([(passive.debit_value - passive.credit_value) for passive in self.passives.all()])
+            self.reported = True
+            self.date_report = get_simulation().today # tiemzone.now()
+            self.period = int(self.date_created - self.date_report)
+            # self.refresh_from_db() # or not needed
+            self.save() # super().save() # hz
+            AccountingBalance.objects.create() # then ass and pass ad to it
+            return True
+        else:
+            return False
 
 # @receiver(pre_save, sender=AccountingBalance)
 # def get_period_AccountingBalance(sender, instance, *args, **kwargs):
@@ -308,8 +322,8 @@ class Assets(models.Model): # Actives
     op_acc = models.ForeignKey(OperativeAccounts, on_delete=models.CASCADE, related_name='assets')
     ab = models.ForeignKey(AccountingBalance, on_delete=models.CASCADE, related_name='assets')
     tb = models.ForeignKey(TrialBalance, on_delete=models.CASCADE, related_name='assets')
-    debit_value = models.FloatField(default=0.0, blank=True) # Decimal # only debit_value for !that! operation
-    credit_value = models.FloatField(default=0.0, blank=True) # Decimal
+    debit_value = models.FloatField(default=0.0, blank=True, null=True) # Decimal # only debit_value for !that! operation
+    credit_value = models.FloatField(default=0.0, blank=True, null=True) # Decimal
     operative_day = MyDateField(auto_now_add=True) # чисто для вида и стат
     
 @receiver(pre_save, sender=Assets)
@@ -325,8 +339,8 @@ class Passives(models.Model):
     op_acc = models.ForeignKey(OperativeAccounts, on_delete=models.CASCADE, related_name='passives')#, related_query_name='passive')
     ab = models.ForeignKey(AccountingBalance, on_delete=models.CASCADE, related_name='passives')
     tb = models.ForeignKey(TrialBalance, on_delete=models.CASCADE, related_name='passives')
-    debit_value = models.FloatField(default=0.0, blank=True) # Decimal
-    credit_value = models.FloatField(default=0.0, blank=True) # Decimal
+    debit_value = models.FloatField(default=0.0, blank=True, null=True) # Decimal
+    credit_value = models.FloatField(default=0.0, blank=True, null=True) # Decimal
     operative_day = MyDateField(auto_now_add=True)
 
 @receiver(pre_save, sender=Passives)
