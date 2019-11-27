@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Accounting</h1>
+<div class='container'>
+{% if not simulations_exists %}
+    <p><a href="{% url 'simulation:simulation_create' %}">Create First Simulation</a></p>
+    <hr>
+    <p><a href="{% url 'simulation:simulation_auto_create' %}">AutoCreate First Simulation</a></p>
+{% else %}
+    <p><a href="{% url 'general_accounting:accounting_balance' %}"> Get Accounting Balance</a></p>
+    <hr>
+    <p><a href="{% url 'general_accounting:trial_balance' %}">Get Trial Balance</a></p>
+{% endif %}
+</div>
+{% endblock content %}

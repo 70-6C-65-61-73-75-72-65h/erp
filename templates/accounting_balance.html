@@ -2,4 +2,114 @@
 
 {% block content %}
 <h1>Accounting Balance</h1>
+<hr>
+<p><a href="{% url 'general_accounting:accounting_main_page' %}">Go back to Main Accounting Page</a></p>
+<hr>
+<p><a id='change_assets'>Show Assets</a></p>
+<p><a id='change_passives'>Show Passives</a></p>
+<hr>
+<div class='container'>
+    {% if performed %}
+        <h3>period: {{ period }}</h3>
+        <h3>date_reported: {{ date_reported }}</h3>
+        <h3>assets_total: {{ assets_total }}</h3>
+        <h3>passives_total: {{ passives_total }}</h3>
+        <hr>
+        <div id='assets' style="display:'none';" hidden>
+            <h1>All Assets:</h1>
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID Asset</th>
+                        <th>Operative Account Name</th>
+                        <th>Operative Account Number</th>
+                        <th>Debit Value</th>
+                        <th>Credit Value</th>
+                        <th>Operative Day</th>
+                        <th>Accounting Balance ID</th>
+                        <th> </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ass in assets %}
+                    <div class="list-group">
+                        <tr class="table-info">
+                            <td>
+                                {{ ass.id }}
+                            </td>
+                            <td>
+                                {{ ass.op_acc.name }}
+                            </td>
+                            <td>
+                                {{ ass.op_acc.number }}
+                            </td>
+                            <td>
+                                {{ ass.debit_value }}
+                            </td>
+                            <td>
+                                {{ ass.credit_value }}
+                            </td>
+                            <td>
+                                {{ ass.operative_day }}
+                            </td>
+                            <td>
+                                {{ ass.ab.id }}
+                            </td>
+                        </tr>
+                    </div>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div id='passives' style="display:'none';" hidden>
+                <h1>All Passives:</h1>
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID Passive</th>
+                            <th>Operative Account Name</th>
+                            <th>Operative Account Number</th>
+                            <th>Debit Value</th>
+                            <th>Credit Value</th>
+                            <th>Operative Day</th>
+                            <th>Accounting Balance ID</th>
+                            <th> </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pass in passives %}
+                        <div class="list-group">
+                            <tr class="table-info">
+                                <td>
+                                    {{ pass.id }}
+                                </td>
+                                <td>
+                                    {{ pass.op_acc.name }}
+                                </td>
+                                <td>
+                                    {{ pass.op_acc.number }}
+                                </td>
+                                <td>
+                                    {{ pass.debit_value }}
+                                </td>
+                                <td>
+                                    {{ pass.credit_value }}
+                                </td>
+                                <td>
+                                    {{ pass.operative_day }}
+                                </td>
+                                <td>
+                                    {{ pass.ab.id }}
+                                </td>
+                            </tr>
+                        </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        <hr>
+    {% else %}
+        <h4>Nothing data from AB report (ERROR OR JUST DATA WERE REPORTED)</h4>
+    {% endif %}
+</div>
 {% endblock content %}

@@ -19,8 +19,7 @@ from company_operations.models import (Product, WareHouse, WHProduct, Purchase,
                                         perform_Veh_repair_Payment, 
                                         perform_CommunalServisePayment, 
                                         get_next_date,
-                                        Department, Fuel, Vehicle,
-                                        DemandForecastingReport) 
+                                        Department, Fuel, Vehicle) # DemandForecastingReport 
 # from simulation.models import get_simulation
 def populate_taxes():
     TaxRate.objects.create(name='for_Purchase', rate=0.2)
@@ -102,7 +101,8 @@ def populate_Fuel():
     Fuel.objects.create(fuel_price=13.20, fuel_type='Газ')
 
 def create_Vehicles(sim):
-    [Vehicle.objects.create(vehicle_consumption=9.0, fuel=Fuel.objects.get(fuel_type='A-95'), vehicle_price=25000.0, vehicle_name='Ford Transit FT-190L', vehicle_full_address_now="Nezalezhnosti Blvd, 11, Brovary, Kyivs'ka oblast, Ukraine, 07400") for i in range(sim.vehicles_num)]
+    [Vehicle.objects.create(vehicle_consumption=9.0, fuel=Fuel.objects.get(fuel_type='A-95'), vehicle_price=25000.0, vehicle_name='Ford Transit FT-190L', vehicle_full_address_now="Nezalezhnosti Blvd, 11, Brovary, Kyivs'ka oblast, Ukraine, 07400", for_transporting='Purchase') for i in range(sim.vehicles_purchase_num)]
+    [Vehicle.objects.create(vehicle_consumption=9.0, fuel=Fuel.objects.get(fuel_type='A-95'), vehicle_price=25000.0, vehicle_name='Ford Transit FT-190L', vehicle_full_address_now="Nezalezhnosti Blvd, 11, Brovary, Kyivs'ka oblast, Ukraine, 07400", for_transporting='WHTransfer') for i in range(sim.vehicles_whtransfer_num)]
 
 def gener_rand_bank_acc():
     bank_acc = [str(random.choice(range(0, 10))) for digit in range(16)]
@@ -185,12 +185,12 @@ def populate_first_Purchses():
         Purchase.objects.create(wh=wh)
 
 
-def populate_first_DemandForecastingReports():
-    that_month_day = datetime.date.today()
-    days_in_month = monthrange(that_month_day.year, that_month_day.month)[1]
-    day_to_report = that_month_day + datetime.timedelta(days_in_month)
-    for wh in WareHouse.objects.all():
-        DemandForecastingReport.objects.create(wh=wh, date_to_report=day_to_report)
+# def populate_first_DemandForecastingReports():
+#     that_month_day = datetime.date.today()
+#     days_in_month = monthrange(that_month_day.year, that_month_day.month)[1]
+#     day_to_report = that_month_day + datetime.timedelta(days_in_month)
+#     for wh in WareHouse.objects.all():
+#         DemandForecastingReport.objects.create(wh=wh, date_to_report=day_to_report)
 
 def create_first_Veh_repair_Payment():
     perform_Veh_repair_Payment()
@@ -227,8 +227,8 @@ def main(sim): # sim
     create_clients(sim)
     print('population populate_first_Purchses ')
     populate_first_Purchses()
-    print('population populate_first_DemandForecastingReports ')
-    populate_first_DemandForecastingReports()
+    # print('population populate_first_DemandForecastingReports ')
+    # populate_first_DemandForecastingReports()
     print('population create_first_Veh_repair_Payment ')
     create_first_Veh_repair_Payment()
     print('population create_first_CommunalServisePayment ')

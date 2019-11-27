@@ -104,10 +104,10 @@ class Profile(models.Model): # fields
                 self.client.delete()
                 self.group_changing(f'worker_{kind}')
                 Worker.objects.create(profile=self, kind=kind, salary=salary, address=address)
-            elif hasattr(self, 'vendor'):
-                self.vendor.delete()
-                self.group_changing(f'worker_{kind}')
-                Worker.objects.create(profile=self, kind=kind, salary=salary, address=address)
+            # elif hasattr(self, 'vendor'):
+            #     self.vendor.delete()
+            #     self.group_changing(f'worker_{kind}')
+            #     Worker.objects.create(profile=self, kind=kind, salary=salary, address=address)
             elif hasattr(self, 'worker'):
                 print('Its already a worker role')
                 return False
@@ -130,11 +130,11 @@ class Profile(models.Model): # fields
 
     def role_to_client(self):
         try:
-            if hasattr(self, 'vendor'):
-                self.vendor.delete()
-                self.group_changing('client')
-                Client.objects.create(profile=self)
-            elif hasattr(self, 'worker'):
+            # if hasattr(self, 'vendor'):
+            #     self.vendor.delete()
+            #     self.group_changing('client')
+            #     Client.objects.create(profile=self)
+            if hasattr(self, 'worker'):
                 self.worker.delete()
                 self.group_changing('client')
                 Client.objects.create(profile=self)

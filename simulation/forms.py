@@ -52,7 +52,9 @@ class SimulationForm(forms.ModelForm):
 
             # to Veh_repair_Payment
             "veh_repair_price_month",#models.ArrayField(models.IntegerField(), size=2)
-            "vehicles_num",#models.IntegerField() # 4  - no !!!    but  11
+            # "vehicles_num",#models.IntegerField() # 4  - no !!!    but  11
+            "vehicles_purchase_num",
+            "vehicles_whtransfer_num",
             # vehicles and fuel_price and fuel_type are static
             "vehicle_name",#models.CharField(max_length=60, default='Ford Transit FT-190L')
             "vehicle_price",#models.FloatField() # 25000.0
@@ -124,8 +126,20 @@ class SimulationForm(forms.ModelForm):
 
         ]
 
+        # VEHICALS_NUM = (
+        #         ('', 'Select the vehicles_num to calc amount pharmacies on 1 vehicle'),
+        #         ('1', '1'), #First one is the value of select option and second is the displayed value in option
+        #         ('2', '2'),
+        #         ('4', '4'),
+        #         ('11', '11'), # this to choose !!!
+        #         ('22', '22'),
+        #         ('44', '44'),
+        #         )
+        # widgets = {
+        #     'vehicles_num': forms.Select(choices=VEHICALS_NUM, attrs={'class': 'form-control'}),
+        # }
         VEHICALS_NUM = (
-                ('', 'Select the vehicles_num to calc amount pharmacies on 1 vehicle'),
+                ('', 'Select the vehicles_purchase_num to perform purchase transfering'),
                 ('1', '1'), #First one is the value of select option and second is the displayed value in option
                 ('2', '2'),
                 ('4', '4'),
@@ -134,5 +148,17 @@ class SimulationForm(forms.ModelForm):
                 ('44', '44'),
                 )
         widgets = {
-            'vehicles_num': forms.Select(choices=VEHICALS_NUM, attrs={'class': 'form-control'}),
+            'vehicles_purchase_num': forms.Select(choices=VEHICALS_NUM, attrs={'class': 'form-control'}),
+        }
+        VEHICALS_NUM = (
+                ('', 'Select the vehicles_whtransfer_num to perform whtransfer transfering to calc amount pharmacies on 1 vehicle'),
+                ('1', '1'), #First one is the value of select option and second is the displayed value in option
+                ('2', '2'),
+                ('4', '4'),
+                ('11', '11'), # this to choose !!!
+                ('22', '22'),
+                ('44', '44'),
+                )
+        widgets = {
+            'vehicles_whtransfer_num': forms.Select(choices=VEHICALS_NUM, attrs={'class': 'form-control'}),
         }

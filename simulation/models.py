@@ -25,6 +25,8 @@ class Simulation(models.Model):
     # daemon_active = models.BooleanField(default=False)
     # info = models.TextField()
 
+    percent_pre_buy = ArrayField(models.FloatField(), size=2) # for each whp - unique
+
     # to CommunalServisePayment
     minimal_zp = models.IntegerField()
     pharmacys_sizes = models.FloatField()
@@ -35,6 +37,8 @@ class Simulation(models.Model):
 
     # to Veh_repair_Payment
     veh_repair_price_month = ArrayField(models.IntegerField(), size=2)
+    vehicles_purchase_num = models.IntegerField()
+    vehicles_whtransfer_num = models.IntegerField()
     vehicles_num = models.IntegerField() # 4  - no !!!    but  11
     # vehicles and fuel_price and fuel_type are static
     vehicle_name = models.CharField(max_length=200, default='Ford Transit FT-190L')
@@ -114,15 +118,15 @@ def Simulation_set_vals(sender, instance, *args, **kwargs):
     # if instance.auto_populated:
 
     if not instance.num_of_phs_on_1_vehicle: #not hasattr(instance, "num_of_phs_on_1_vehicle"): # not instance.num_of_phs_on_1_vehicle:
-        instance.num_of_phs_on_1_vehicle = int(instance.warehouse_num / instance.vehicles_num) # 11
-
+        instance.num_of_phs_on_1_vehicle = int(instance.warehouse_num / instance.vehicles_purchase_num) # 11
+        instance.vehicles_num  = instance.vehicles_purchase_num + instance.vehicles_whtransfer_num
         instance.pharmacist_num = instance.warehouse_num * instance.pharmacist_per_wh
         instance.cleaner_num = instance.warehouse_num * instance.cleaner_per_wh
-        instance.loader_num = instance.vehicles_num * instance.loader_per_vehicle
-        instance.driver_num = instance.vehicles_num * instance.driver_per_vehicle
+        instance.loader_num = (instance.vehicles_purchase_num + instance.vehicles_whtransfer_num) * instance.loader_per_vehicle
+        instance.driver_num = (instance.vehicles_purchase_num + instance.vehicles_whtransfer_num) * instance.driver_per_vehicle
 
         # instance.save()
 
 def get_simulation():
-    return Simulation.objects.all().last()
+    return Simulation.objects.all().last() if Simulation.objects.all().exists() else None
 

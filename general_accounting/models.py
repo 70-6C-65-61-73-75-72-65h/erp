@@ -122,6 +122,7 @@ class TrialBalance(models.Model): # каждая новая строка - но�
 
     dicts_of_accs = models.TextField(blank=True, null=True) # TODO change on json or array of dicts (its nevermind)
 
+    # next_id = models.IntegerField(default=0)
     # class Meta:
     #     ordeding = ['-date_report']
 
@@ -135,7 +136,7 @@ class TrialBalance(models.Model): # каждая новая строка - но�
         passives = self.passives.all()
         assets_ids = [ass.id for ass in assets]
         passives_ids = [pas.id for pas in passives]
-        used_accs_nums = [[ass.number for ass in assets], [pas.number for pas in passives]]
+        used_accs_nums = [[ass.op_acc.number for ass in assets], [pas.op_acc.number for pas in passives]]
         used_accs_nums = sum(used_accs_nums, [])
         dicts_of_accs = []
         totals = {'accs_credits_total': None, 'accs_debits_total': None, 'turnover_credit': None, 'turnover_debit': None}
@@ -192,16 +193,23 @@ class TrialBalance(models.Model): # каждая новая строка - но�
         """after call creating report of TrialBalance
         can call only after creating of TrialBalance instance
         """
-        if self.passives.all().exists() and not self.active.all().exists(): #hasattr(self, "passives") and hasattr(self, "assets"):
+        if self.passives.all().exists() and self.assets.all().exists(): #hasattr(self, "passives") and hasattr(self, "assets"):
             # перед подсчетом всех компонентов необходимо создать новый баланс, чтоб туда могли записыватся те активы и пассивы которые создаются пока производятся подсчеты для этого отчета
             TrialBalance.objects.create() # -> this is the last TB, that isnt reported right now but used for future assets and passives 
-            if TrialBalance.objects.order_by("id")[1] == self.id: # if it is the first created TB # cause descending order for id  ( cause maximum_id==last_id )
+            # print(f'\n\nTB: {TrialBalance.objects.order_by("id")[1]}\n\n')
+            if TrialBalance.objects.all().count() == 2: # if it is the first created TB # cause descending order for id  ( cause maximum_id==last_id )
                 self.start_saldo_credit = 0
                 self.start_saldo_debit = 0
+            elif TrialBalance.objects.all().count() == 3:
+                saldo_from = TrialBalance.objects.all().first()
+                print(f'\n\n{saldo_from.id}\n\n')
+                self.start_saldo_credit = saldo_from.end_saldo_credit
+                self.start_saldo_debit = saldo_from.end_saldo_debit
             else:
                 # that mean that there is more than 1 object in queryset ( we get penultimate )
-                self.start_saldo_credit = (TrialBalance.objects.order_by("id")[2]).end_saldo_credit
-                self.start_saldo_debit = (TrialBalance.objects.order_by("id")[2]).end_saldo_debit
+                # print(f'\n\n{(TrialBalance.objects.all().order_by("-id")[2:3])}')
+                self.start_saldo_credit = (TrialBalance.objects.all().order_by("-id")[2:3])[0].end_saldo_credit
+                self.start_saldo_debit = (TrialBalance.objects.all().order_by("-id")[2:3])[0].end_saldo_debit
 
             # calc_turnover()
             dicts_of_accs, totals = self.get_used_accs_with_values()
@@ -215,7 +223,7 @@ class TrialBalance(models.Model): # каждая новая строка - но�
             self.reported = True
             # self.date_report = datetime.datetime.today() # tiemzone.now()
             self.date_report = get_simulation().today
-            self.period = int(self.date_created - self.date_report)
+            self.period = int((self.date_report - self.date_created).days)
             # self.refresh_from_db() # or not needed
             self.save() # super().save() # hz
             return True
@@ -266,7 +274,7 @@ class AccountingBalance(models.Model): # каждая новая строка - 
             self.passives_total = sum([(passive.debit_value - passive.credit_value) for passive in self.passives.all()])
             self.reported = True
             self.date_report = get_simulation().today # tiemzone.now()
-            self.period = int(self.date_created - self.date_report)
+            self.period = int((self.date_report - self.date_created).days)
             # self.refresh_from_db() # or not needed
             self.save() # super().save() # hz
             AccountingBalance.objects.create() # then ass and pass ad to it

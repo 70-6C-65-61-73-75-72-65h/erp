@@ -2,4 +2,44 @@
 
 {% block content %}
 <h1>Trial Balance</h1>
+<hr>
+<p><a href="{% url 'general_accounting:accounting_main_page' %}">Go back to Main Accounting Page</a></p>
+<hr>
+<div class='container'>
+    {% if performed %}
+        <h3>start_saldo_credit: {{ start_saldo_credit }}</h3>
+        <h3>start_saldo_debit: {{ start_saldo_debit }}</h3>
+        <h3>end_saldo_credit: {{ end_saldo_credit }}</h3>
+        <h3>end_saldo_debit: {{ end_saldo_debit }}</h3>
+        <h3>turnover_credit: {{ turnover_credit }}</h3>
+        <h3>turnover_debit: {{ turnover_debit }}</h3>
+        <hr>
+        <h1>All TB data:</h1>
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                {% for dict_key in list_dict_data_keys %}
+                    <th>{{ dict_key }}</th>
+                {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for tb_data in list_dict_data %}
+                <div class="list-group">
+                    <tr class="table-info">
+                        {% for key, value in tb_data.items %}
+                        <td>
+                            {{ value }}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                </div>
+                {% endfor %}
+            </tbody>
+        </table>
+        <hr>
+    {% else %}
+        <h4>Nothing data from TB report (ERROR OR JUST DATA WERE REPORTED)</h4>
+    {% endif %}
+</div>
 {% endblock content %}

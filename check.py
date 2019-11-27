@@ -238,15 +238,17 @@
 
 # import numpy as np
 
-# data1 = np.ones((1, 16, 16, 3))
-# data2 = np.zeros((1, 16, 16, 1))
+# data1 = np.ones((1, 28, 28, 1))
 
-# # for a1, a2 in zip(data1, data2):
-# #     for b1, b2 in zip(a1, a2):
-# #         for c1, c2 in zip(b1, b2):
-# #             for index, d in enumerate(c2):
-# #                 c2[index] = c1[0]
+# for a1 in data1:
+#     for b1 in a1:
+#         for c1 in b1:
+#             if c1[0] < 0:
+#                 c1[0] = 0
+#             elif c1[0] > 1:
+#                 c1[0] = 1
 
+# list(map(print, data1))
 # # print(data2)
 # # print(int(1.2))
 
@@ -264,3 +266,27 @@
 
 # d =datetime.datetime.now() + datetime.timedelta(hours=1)
 # print(d)
+# l1  = [1,2,3]#['red','blue','green','whfgrite', '3']
+# l2 = [3,2,1]#['rfed','whitfe','whitdfe','whitdffe','white']
+
+# l11 = set(i for i in l1)
+# l22 = set(i for i in l2)
+# print(l11.isdisjoint(l22))
+# print(l11.issubset(l22)) # l11 подмножество l22
+# print(l11.issuperset(l22)) # l11 надмножество l22
+# print(l11==l22) # множества равны
+# Метод isdisjoint()
+# Этот метод проверяет, является ли множество пересечением или нет. Если множества не содержат общих элементов, метод возвращает True, в противном случае — False. Например:
+
+# l1 = [{'h1': None}, {'h1': None}, {'h1': None}, {'h1': None}]
+# class A:
+#     def __init__(self, data):
+#         self.data = data
+#         # print(f'from __init__ self.data is {self.data}')
+
+#     def p(self):
+#         print(f'from p self.data is {self.data}')
+
+# to_p = [A(i) for i in range(5)]
+# [i.p() for i in to_p]
+# (i for i in a)
