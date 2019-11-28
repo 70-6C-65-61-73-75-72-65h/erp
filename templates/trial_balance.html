@@ -6,6 +6,7 @@
 <p><a href="{% url 'general_accounting:accounting_main_page' %}">Go back to Main Accounting Page</a></p>
 <hr>
 <div class='container'>
+    {{performed}}
     {% if performed %}
         <h3>start_saldo_credit: {{ start_saldo_credit }}</h3>
         <h3>start_saldo_debit: {{ start_saldo_debit }}</h3>

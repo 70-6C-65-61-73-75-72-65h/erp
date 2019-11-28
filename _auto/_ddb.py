@@ -70,6 +70,41 @@ try:
 
     del packs[general_accounting_index]
 
+    accounts_index = packs.index('accounts')
+    accounts = packs[accounts_index] 
+
+    os.system(f'mkdir {accounts}\migrations')
+    os.system(f'type nul > {accounts}\migrations\__init__.py')
+    os.system('manage.py migrate')
+    os.system('manage.py makemigrations')
+    os.system('manage.py migrate')
+
+    del packs[accounts_index]
+
+    
+    company_operations_index = packs.index('company_operations')
+    company_operations = packs[company_operations_index] 
+
+    os.system(f'mkdir {company_operations}\migrations')
+    os.system(f'type nul > {company_operations}\migrations\__init__.py')
+    os.system('manage.py migrate')
+    os.system('manage.py makemigrations')
+    os.system('manage.py migrate')
+
+    del packs[company_operations_index]
+
+
+    assessments_index = packs.index('assessments')
+    assessments = packs[assessments_index] 
+
+    os.system(f'mkdir {assessments}\migrations')
+    os.system(f'type nul > {assessments}\migrations\__init__.py')
+    os.system('manage.py migrate')
+    os.system('manage.py makemigrations')
+    os.system('manage.py migrate')
+
+    del packs[assessments_index]
+
 
     # then all others
     for pack in packs:
@@ -93,3 +128,7 @@ try:
 except Exception as ex:
     print('nu tu i durak')
     print(ex)
+
+
+
+#   from assessments.models import hr_checks_phs

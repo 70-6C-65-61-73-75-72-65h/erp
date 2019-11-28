@@ -12,11 +12,15 @@ def change_staff():
         if simulation.models.Simulation.objects.all().exists():
             break
     sim = simulation.models.get_simulation()
-    if len(sys.argv) == 2: # if sys.argv[1] == '-u':
-        t1 = time.clock()
-        _up.main(sim) # pre population all tables
-        t2 = time.clock()
-        print(f'\n\nprepopulation time:{t2-t1} sec\n\n')
+    if sim.id != simulation.models.Simulation.objects.all().first().id:
+        up.drop_simulation_data()
+        _up.main(sim)
+    else: # if total update of all with _ddb
+        if len(sys.argv) == 2: # if sys.argv[1] == '-u':
+            t1 = time.clock()
+            _up.main(sim) # pre population all tables
+            t2 = time.clock()
+            print(f'\n\nprepopulation time:{t2-t1} sec\n\n')
     range_hours = range(24)
     print(f'\n\n{sim}\n\n')
     while 1:

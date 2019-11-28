@@ -3,6 +3,7 @@ from django.contrib.auth.models import User, Group
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.urls import reverse
+from django.apps import apps
 
 from markdown_deux import markdown
 from django.utils.safestring import mark_safe
@@ -12,6 +13,9 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from decimal import Decimal as D
 
 from django.core.exceptions import FieldDoesNotExist
+from simulation.models import get_simulation
+
+# from company_operations.models import Department, Vehicle, WareHouse
 
 from mixins.models import Address, MyDateField
 
@@ -46,16 +50,25 @@ class Profile(models.Model): # fields
     def group_changing(self, new_name):
         # print('group changing start')
         # print(self.user.groups.all())
+        # print('group_changing start')
         self.user.groups.clear()
+        # print('group_changing groups clear')
         # print(self.user.groups.all())
         # print('group changing clear')
         # if self.user.groups.filter(name=old_name).exists():
-        group = Group.objects.get_or_create(name=new_name)[0]
+        g = Group.objects.get_or_create(name=new_name)
+        # print('after group getting group')
+        # print(g)
+        group = g[0]
+        # print('after group getting group')
+        # print(group)
         # print(group)
         # print('group changing create new')
         # group.user_set.add(self.user)
         self.user.groups.add(group)
+        # print('after group adding')
         self.user.save()
+        # print('after group saving')
         # print('group changing added to user')
         # (self.user.groups._meta.get_field(f'{old_name}_set')).remove(self.user)
         # self.user.save()
@@ -65,7 +78,7 @@ class Profile(models.Model): # fields
     def role_to_vendor(self, organisation, address):
         try:
         #     # assert self.client.all() is not None
-            print('start role_to_vendor')
+            # print('start role_to_vendor')
             if hasattr(self, 'client'):
                 # print('hasattr client')
                 self.client.delete()
@@ -98,12 +111,19 @@ class Profile(models.Model): # fields
             print('some fucking error')
             return None
 
-    def role_to_worker(self, kind, salary, address):
+    def role_to_worker(self, kind, salary, address, id_workon_place):
         try:
             if hasattr(self, 'client'):
+                # print('start client deletion')
                 self.client.delete()
+                # print('end client deletion')
+                # print(f"kind:{kind}")
+                # print('before group_changing')
                 self.group_changing(f'worker_{kind}')
-                Worker.objects.create(profile=self, kind=kind, salary=salary, address=address)
+                # print('after group_changing')
+                # print('Here must be created object of worker')
+                return Worker.objects.create(profile=self, kind=kind, salary=salary, address=address, id_workon_place=id_workon_place)
+                # self.save()
             # elif hasattr(self, 'vendor'):
             #     self.vendor.delete()
             #     self.group_changing(f'worker_{kind}')
@@ -111,8 +131,9 @@ class Profile(models.Model): # fields
             elif hasattr(self, 'worker'):
                 print('Its already a worker role')
                 return False
-        except Exception:
+        except Exception as ex:
             print('some fucking error')
+            print(ex)
             return None
 
     def change_worker_class(self, kind, salary):
@@ -498,15 +519,62 @@ class Vendor(models.Model): # user in ProfileMixin - физ представит
 
 
 class Worker(models.Model):
+    # CASCADE - profile when creating - and you can change worker to client any more !!!!!!!!
     profile = models.OneToOneField(Profile, on_delete=models.SET_NULL, related_name='worker', null=True) # 
     address = models.OneToOneField(Address, on_delete=models.CASCADE, related_name='worker')
     kind = models.CharField(max_length=100) # setting in form with casees (HR, Pharmacist, Cleaner ...)
     salary = models.FloatField(default=0.0)# как таковой пересылки на счет нет, подсчитывается пока в селерипеймент все скопом кучей - ибо толку то - все равно мы послать на счет не сможем
     birth_date = models.DateField(null=True, blank=True)
     # salary .... birth_date (mb from profile) and so on
+    prob_of_worker_fired = models.FloatField(default=0.0)
+    # work_on_wh = models.ForeignKey("company_operations.WareHouse", on_delete=models.SET_NULL, related_name='workers', null=True) # if not only by ids gonna be deleteed / but assesment тоже только по ид а не по аптекам
+    # work_on_vehicle = models.ForeignKey("company_operations.Vehicle", on_delete=models.SET_NULL, related_name='workers', null=True) 
+    # work_on_dpt = models.ForeignKey("company_operations.Department", on_delete=models.SET_NULL, related_name='workers', null=True)
+    work_on_wh = models.BooleanField(default=False)
+    work_on_vehicle = models.BooleanField(default=False)
+    work_on_dpt = models.BooleanField(default=False)
+    id_workon_place = models.IntegerField()
+    fired = models.BooleanField(default=False)
+
+@receiver(pre_save, sender=Worker)
+def pre_save_Worker(sender, instance, *args, **kwargs):
+    if instance.prob_of_worker_fired == 0.0 or not instance.prob_of_worker_fired:
+        sim = get_simulation()
+        if instance.kind == 'HR':
+            instance.prob_of_worker_fired = sim.prob_of_worker_fired_hr
+            instance.work_on_dpt = True#apps.get_model('company_operations.Department').objects.get(id=instance.id_workon_place)
+        elif instance.kind == 'accounting_manager':
+            instance.prob_of_worker_fired = sim.prob_of_worker_fired_am
+            instance.work_on_dpt = True#apps.get_model('company_operations.Department').objects.get(id=instance.id_workon_place)
+        elif instance.kind == 'pharmacist':
+            instance.prob_of_worker_fired = sim.prob_of_worker_fired_ph
+            instance.work_on_wh = True#apps.get_model('company_operations.WareHouse').objects.get(id=instance.id_workon_place)
+        elif instance.kind == 'director':
+            instance.prob_of_worker_fired = sim.prob_of_worker_fired_dir
+            instance.work_on_dpt = True#apps.get_model('company_operations.Department').objects.get(id=instance.id_workon_place)
+        elif instance.kind == 'cleaner':
+            instance.prob_of_worker_fired = sim.prob_of_worker_fired_cl
+            instance.work_on_wh = True#apps.get_model('company_operations.WareHouse').objects.get(id=instance.id_workon_place)
+        elif instance.kind == 'loader':
+            instance.prob_of_worker_fired = sim.prob_of_worker_fired_ld
+            instance.work_on_vehicle = True#apps.get_model('company_operations.Vehicle').objects.get(id=instance.id_workon_place)
+        elif instance.kind == 'driver':
+            instance.prob_of_worker_fired = sim.prob_of_worker_fired_dr
+            instance.work_on_vehicle = True#apps.get_model('company_operations.Vehicle').objects.get(id=instance.id_workon_place)
+        elif instance.kind == 'sys_admin':
+            instance.prob_of_worker_fired = sim.prob_of_worker_fired_sa
+            instance.work_on_dpt = True#apps.get_model('company_operations.Department').objects.get(id=instance.id_workon_place)
+
 
 class Client(models.Model):
     profile = models.OneToOneField(Profile, on_delete=models.SET_NULL, related_name='client', null=True)
+    # wh = models.ForeignKey("company_operations.WareHouse", on_delete=models.SET_NULL, related_name='clients', null=True)
+
+    def make_assessment(self, assess, worker, pharmacy):
+        # не отталкиваемся от сейлов а просто ежедневно проверка на оценку от пользователя  - биноминальное распр по к-ву клиентов которые сегодня сделают оценку в 
+        # assess = 
+        sim = get_simulation()
+        apps.get_model('assessments.Assessment').objects.create(assess=assess, worker=worker, pharmacy=pharmacy, client=self, created=sim.today)
     # address = models.OneToOneField(Address, on_delete=models.CASCADE, related_name='client')
 
 # class Director(Profile, Address): # like admin in rights

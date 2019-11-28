@@ -8,6 +8,7 @@
     <hr>
     <p><a href="{% url 'simulation:simulation_auto_create' %}">AutoCreate First Simulation</a></p>
 {% else %}
+    <p><a href="{% url 'simulation:simulation_data' %}" class="btn btn-primary" role="button">Simulation Inner Data</a></p>
     {% if not simulation_status %}
         <p><a href="{% url 'simulation:simulate' 'enable' %}" class="btn btn-primary" role="button">Start Simulation</a></p>
     {% else %}

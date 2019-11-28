@@ -120,6 +120,7 @@ class TrialBalance(models.Model): # каждая новая строка - но�
     date_report = MyDateField(editable=True, blank=True, null=True)# from there we can get the ""period""
     period = models.IntegerField(default=0)
 
+    reported = models.BooleanField(default=False)
     dicts_of_accs = models.TextField(blank=True, null=True) # TODO change on json or array of dicts (its nevermind)
 
     # next_id = models.IntegerField(default=0)

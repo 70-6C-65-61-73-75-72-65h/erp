@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Trial Balances</h1>
+<hr>
+<p><a href="{% url 'general_accounting:accounting_main_page' %}">Go back to Main Accounting Page</a></p>
+<hr>
+<div class='container'>
+    {% if exists %}
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>ID TB</th>
+                    <th>Operative Day</th>
+                    <th> </th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for id, data_reported in data %}
+                <div class="list-group">
+                    <tr class="table-info">
+                        <td>
+                            <a href="{% url 'general_accounting:certain_tb' id %}" class='btn btn-primary btn-sm'>{{ id }}</a>
+                        </td>
+                        <td>
+                            {{ data_reported|date:"d.m.Y" }}
+                        </td>
+                    </tr>
+                </div>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+    <hr>
+    <h3>There is no Trial Balances in system ( create TB or create simulation to create TB )</h3>
+    {% endif %}
+<div class='container'>
+{% endblock content %}

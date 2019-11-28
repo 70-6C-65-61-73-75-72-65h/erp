@@ -43,6 +43,7 @@ class SimulationForm(forms.ModelForm):
 
 
             # to CommunalServisePayment
+            "percent_pre_buy",
             "minimal_zp",#models.IntegerField()
             "pharmacys_sizes",#models.FloatField()
             "department_size",#models.FloatField()
@@ -123,6 +124,26 @@ class SimulationForm(forms.ModelForm):
             # for convinience in opening accounts
             "that_user_password",#models.CharField(default="that_user_111", max_length=30)
 
+            "percent_pre_buy_max_prob",
+            "ph_sp_max_prob",##5,
+            "dpt_sp_max_prob",##5,
+            "v_r_max_prob",##5,
+            "product_cost_price_max_prob",#5,
+            "d_q_r_max_prob",#5,
+            "prob_of_worker_fired_dir",#01, # помимо того что предлагают на увольнение хр по фармацептами ( собственная вероятность увольнения ) на этот  месяц
+            "prob_of_worker_fired_hr",#05,
+            "prob_of_worker_fired_am",#05,
+            "prob_of_worker_fired_sa",#08,
+            "prob_of_worker_fired_cl",#3,
+            "prob_of_worker_fired_ld",#4,
+            "prob_of_worker_fired_dr",#15,
+            "prob_of_worker_fired_ph",#1,
+            "assesment_range",#=[1,5],
+            "prob_of_client_assessment",#1,
+            "prob_max_assesm_client",#8,
+            "assesm_to_delete_worker",#=2,
+            "threshold_bad_assesses",#=4,
+            "prob_delete_worker"#3,
 
         ]
 
@@ -138,7 +159,7 @@ class SimulationForm(forms.ModelForm):
         # widgets = {
         #     'vehicles_num': forms.Select(choices=VEHICALS_NUM, attrs={'class': 'form-control'}),
         # }
-        VEHICALS_NUM = (
+        TVEHICALS_NUM = (
                 ('', 'Select the vehicles_purchase_num to perform purchase transfering'),
                 ('1', '1'), #First one is the value of select option and second is the displayed value in option
                 ('2', '2'),
@@ -148,9 +169,9 @@ class SimulationForm(forms.ModelForm):
                 ('44', '44'),
                 )
         widgets = {
-            'vehicles_purchase_num': forms.Select(choices=VEHICALS_NUM, attrs={'class': 'form-control'}),
+            'vehicles_purchase_num': forms.Select(choices=TVEHICALS_NUM, attrs={'class': 'form-control'}),
         }
-        VEHICALS_NUM = (
+        PVEHICALS_NUM = (
                 ('', 'Select the vehicles_whtransfer_num to perform whtransfer transfering to calc amount pharmacies on 1 vehicle'),
                 ('1', '1'), #First one is the value of select option and second is the displayed value in option
                 ('2', '2'),
@@ -160,5 +181,5 @@ class SimulationForm(forms.ModelForm):
                 ('44', '44'),
                 )
         widgets = {
-            'vehicles_whtransfer_num': forms.Select(choices=VEHICALS_NUM, attrs={'class': 'form-control'}),
+            'vehicles_whtransfer_num': forms.Select(choices=PVEHICALS_NUM, attrs={'class': 'form-control'}),
         }

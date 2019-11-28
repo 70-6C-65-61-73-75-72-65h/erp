@@ -12,10 +12,11 @@ import datetime
 from calendar import monthrange
 
 from general_accounting.models import Assets, Passives, TaxRate
-from accounts.models import Vendor, Worker #, Client  - при совершении поодиночного сейла SaleAlone
+from accounts.models import Vendor, Worker, Client#, Client  - при совершении поодиночного сейла SaleAlone
 from simulation.models import get_simulation
 from mixins.models import Address, MyDateField
-from mixins.functions import get_random_int, get_random_float
+from mixins.functions import get_random_int, get_random_float, get_binominal, get_float_binominal
+# from assessments.models import hr_checks_phs
 # Create your models here.
 from general_accounting import acc_operations
 # from .operations import forecast
@@ -44,6 +45,17 @@ def get_next_date():
     days_in_month = monthrange(that_month_day.year, that_month_day.month)[1]
     day_to_pay = that_month_day + datetime.timedelta(days_in_month)
     return day_to_pay
+
+
+# add in _up.py FireCheck.objects.create(next_check=get_next_date())
+class HireFireCheck(models.Model):
+    next_check = models.DateField()
+    # on_delete - нету в ManyToManyField
+    fired_that_month = models.ManyToManyField(Worker, related_name='fire_check_added') # rand решение # null=True
+    will_be_fire_next_month = models.ManyToManyField(Worker, related_name='fire_check_will_be_added') # решение HR по phs
+    hired_that_month = models.ManyToManyField(Worker, related_name='hire_check_added') # rand решение # null=True
+    # will_be_hire_next_month = models.ManyToManyField(Worker, related_name='fire_check_will_be_added', on_delete=models.SET_NULL) # решение HR по phs  
+
 #__________________________________________________________________________________________________________
 # from there for each WareHouse and 
 class CommunalServisePayment(models.Model): # start month
@@ -59,8 +71,8 @@ def get_CommunalServisePayment_value(): # каждый месяц рандомн
     pharmacys_sizes = sim.pharmacys_sizes
     department_size = sim.department_size
     tax_property_size_limit = sim.tax_property_size_limit
-    pharmacys_spendingds = get_random_int(sim.pharmacys_spendingds)
-    department_spendingds = get_random_int(sim.department_spendingds)
+    pharmacys_spendingds = get_float_binominal(sim.pharmacys_spendingds, sim.ph_sp_max_prob)
+    department_spendingds = get_float_binominal(sim.department_spendingds, sim.dpt_sp_max_prob)
     warehouse_num = get_simulation().warehouse_num
 
     get_property_tax = lambda size_meters: (size_meters - tax_property_size_limit) * TaxRate.objects.get(name='property_Tax').rate * minimal_zp if size_meters > tax_property_size_limit else 0
@@ -93,9 +105,12 @@ def get_Veh_repair_Payment_value(): # каждый месяц рандомно
     veh_repair_price_month = get_simulation().veh_repair_price_month
     vehicles_num = get_simulation().vehicles_num
     total_repair_value = 0
-    for veh in range(1, vehicles_num+1):
-        repair_for_veh = get_random_int(veh_repair_price_month)
-        ve = Vehicle.objects.get(id=veh)#.update(veh_repair_price_month=repair_for_veh)
+
+    veh_all = Vehicle.objects.order_by('id').all()
+
+    for index, veh in enumerate(veh_all):
+        repair_for_veh = get_float_binominal(veh_repair_price_month, get_simulation().v_r_max_prob)
+        ve = veh_all[index]#.update(veh_repair_price_month=repair_for_veh)
         ve.veh_repair_price_month = repair_for_veh
         ve.save()
         total_repair_value += repair_for_veh
@@ -134,7 +149,7 @@ class SalaryPayment(models.Model): # end month
 
 def get_SalaryPayment_value():
     # sim = get_simulation()
-    total_value = sum(worker.salary for worker in Worker.objects.all())
+    total_value = sum(worker.salary for worker in Worker.objects.filter(fired=False).all())
     # total_value = sim.salary_pharmacist * sim.pharmacist_num +
     #                 sim.salary_HR * sim.HR_num +
     #                 sim.salary_accounting_manager * sim.accounting_manager_num +
@@ -412,6 +427,12 @@ def set_PurchaseClaim_expire_day(sender, instance, *args, **kwargs):
         # прибытия в начальный адрес (первый адрес с максимально долгой доставкой)
         veh_start_addr = Vehicle.objects.filter(for_transporting='Purchase').last().vehicle_full_address_now  # "Kapushanska St, 19, Uzhhorod, Zakarpats'ka oblast, Ukraine, 88000"
         vendor_addr = (Vendor.objects.all().last()).address.full_address # "Bulʹvar Oleksandriysʹkyy, 95, Bila Tserkva, Kyivs'ka oblast, Ukraine, 09100"
+        if veh_start_addr == vendor_addr:
+            veh_start_addr = Vehicle.objects.filter(for_transporting='Purchase').last().go_from_addr
+            if veh_start_addr == vendor_addr:
+                veh_start_addr = Vehicle.objects.filter(for_transporting='Purchase').last().go_to_addr
+                if veh_start_addr == vendor_addr:
+                    print('\n\nHAHAHAHHAHAHAHAHAHAHHA, CAN I DIE, PLEASE??????\n\n')
         # ЦЕПЬ
         # from start_vehicle_addr to vendor_addr -> 
         # from vendor_addr to max_delivery_time_addrs[0] -> 
@@ -784,7 +805,7 @@ def get_WHTransferClaim_accepttion(whtcs):
     from_wh_s = set(whtc.from_wh for whtc in whtcs)
     if not to_wh_s.isdisjoint(from_wh_s):
         print('\n\n\n\n\n\n\n\n')
-        print(f'in get_WHTransferClaim_accepttion koshmar: {not to_wh_s.isdisjoint(from_wh_s)} ')
+        # print(f'in get_WHTransferClaim_accepttion koshmar: {not to_wh_s.isdisjoint(from_wh_s)} ')
     # to_wh_s and from_wh_s по идее не могут пересекатся
     for to_wh in to_wh_s:
         for from_wh in from_wh_s:
@@ -948,8 +969,8 @@ def set_sale_quantity(sender, instance, *args, **kwargs):
         for whp in whps:
             # substituted by random day_quantity_range
             # saled_quantity = int(whp.self_rate * instance.quantity_rate_per_day * whp.quantity) # до нижнего порога округлит
-            asked_quantity = int(get_random_int([instance.min_day_quantity, instance.max_day_quantity]) * whp.self_rate) # example: 5*0.8=int(4.0) or 4*1.2=int(5.0)
-            percent_pre_buy = get_random_float(instance.percent_pre_buy)
+            asked_quantity = int(get_binominal([instance.min_day_quantity, instance.max_day_quantity], get_simulation().d_q_r_max_prob) * whp.self_rate) # example: 5*0.8=int(4.0) or 4*1.2=int(5.0)
+            percent_pre_buy = get_float_binominal(instance.percent_pre_buy, get_simulation().percent_pre_buy_max_prob)
             # DemandForecasting.objects.create(saled_quantity=saled_quantity, wh=whp.warehouse, product=whp.product) # 4500 строк в дф в день
             
             # whp.last_saled_quantity = saled_quantity
@@ -1027,6 +1048,23 @@ def Sale_set_A_P(sender, instance, created, **kwargs):
         acc_operations.sale_to_account(value=instance.total_price) # sale_to_cassa
 
 
+# хоть и работа с ассесментами, но! без явного указания моделей, потоум нихуя не импортится!
+def get_clients_assessments(sim):
+    cl_as_ranges = range(0, Client.objects.all().count())
+    binom_ass_cl_num = get_binominal([0, len(cl_as_ranges)], sim.prob_of_client_assessment) # количество клиентов что сегодня поставят оценку
+
+    sequentually = [random.choice(cl_as_ranges) for cl in range(binom_ass_cl_num)] 
+    all_cl = Client.objects.all()#.values_list('id', flat=True) # thier ids
+    # print(f'\n\n\\t all_cl: {all_cl}n\n')
+    workers = Worker.objects.filter(fired=False, kind='pharmacist').all()
+    # print(f'workers: {workers}')
+    for cl in sequentually:
+        cl_to_asses = Client.objects.get(id=(all_cl[cl]).id) # взять ид от того юзера у которого совпло сегодня поставить оценку
+        to_worker = random.choice(workers)
+        # print(f'place: {to_worker.id_workon_place}')
+        w_pharmacy = WareHouse.objects.get(id=to_worker.id_workon_place)
+        assess  = get_binominal([sim.assesment_range[0], sim.assesment_range[1]+1], sim.prob_max_assesm_client)
+        cl_to_asses.make_assessment(assess, to_worker, w_pharmacy) # а потом биноминальо решаем какую оценку он поставит
 
 
 def perform_sale(sim):  # from simulation
@@ -1040,6 +1078,8 @@ def perform_sale(sim):  # from simulation
     set_transfer_products() # тут запускаются трансферы
     # проверка на истекающие клеймы для покупок
     check_on_start_purchases()# тут запускаются покупки
+
+    get_clients_assessments(sim)
     # подитожить какие клеймы на обработку 
     # ( тоесть либо пересылку меж аптеками либо на закупку) 
     # если на пересылку не насобиралось ( тоесть менее 300 продуктов с аптеки до аптеки) 

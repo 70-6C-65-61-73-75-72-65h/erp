@@ -157,3 +157,5 @@ SILENCED_SYSTEM_CHECKS = [
     'admin.E409',
     'admin.E410',
 ]
+
+ALLOWED_HOSTS = ['0.0.0.0', '192.168.0.7', '127.0.0.1']

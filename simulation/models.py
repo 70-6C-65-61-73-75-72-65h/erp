@@ -26,17 +26,24 @@ class Simulation(models.Model):
     # info = models.TextField()
 
     percent_pre_buy = ArrayField(models.FloatField(), size=2) # for each whp - unique
+    percent_pre_buy_max_prob = models.FloatField(0.7)
 
     # to CommunalServisePayment
     minimal_zp = models.IntegerField()
     pharmacys_sizes = models.FloatField()
     department_size = models.FloatField()
     tax_property_size_limit = models.FloatField()
+
     pharmacys_spendingds = ArrayField(models.IntegerField(), size=2)
+    ph_sp_max_prob = models.FloatField(0.5)
+
     department_spendingds = ArrayField(models.IntegerField(), size=2)
+    dpt_sp_max_prob = models.FloatField(0.5)
 
     # to Veh_repair_Payment
     veh_repair_price_month = ArrayField(models.IntegerField(), size=2)
+    v_r_max_prob = models.FloatField(0.5)
+
     vehicles_purchase_num = models.IntegerField()
     vehicles_whtransfer_num = models.IntegerField()
     vehicles_num = models.IntegerField() # 4  - no !!!    but  11
@@ -63,14 +70,16 @@ class Simulation(models.Model):
     number_of_products_names = models.IntegerField() # 100
     product_markup_rate = ArrayField(models.FloatField(), size=2) # 0.25, 0.3
     product_cost_price = ArrayField(models.FloatField(), size=2)
+    product_cost_price_max_prob = models.FloatField(default=0.15) # 150 грн продукты - чаще всего - если стоимость от 0 до 1000
 
     #for whproducts
     whp_self_rate = ArrayField(models.FloatField(), size=2) # 0.7, 1.5
     whp_quantity = ArrayField(models.IntegerField(), size=2) # 100, 200
 
     # for sale                                      for 1 whp in day
-    day_quantity_range = ArrayField(models.IntegerField(), size=2) # 2, 5
-    
+    day_quantity_range = ArrayField(models.IntegerField(), size=2) # 2, 5  --> 0 , 7
+    d_q_r_max_prob = models.FloatField(default=0.7)
+
     # SalaryPayment in accounts.worker creation in _up   == 8 types really worx
     salary_pharmacist = models.FloatField(default=7000.0) # salary_pharmacist_num =  warehouse_num*3  #models.ArrayField()
     pharmacist_per_wh = models.IntegerField(default=3) # pro zapas 1 (2 odnovremenno)
@@ -109,6 +118,32 @@ class Simulation(models.Model):
     that_user_password = models.CharField(default="that_user_111", max_length=30)
 
 
+    # prob_full_sale = models.FloatField(default=) # just 1 prob for all sales #ArrayField(models.FloatField(), size=2) # rand for get prob for each sale ()
+
+    assesm_to_delete_worker = models.IntegerField(default=2) # 2 - (2 and below) @ при 2 - пересмотр воркера на удоление
+    threshold_bad_assesses = models.IntegerField(default=4)
+    prob_delete_worker = models.FloatField(default=0.3)# вероятность удаления воркера, если достигнут порог плохиц оценок
+    # for each_pharmacist in is_worker_fired = get_binominal([0, HR_num], prob_delete_worker) # HR decisions: HR_num -  количество решений - если более половины - дропают воркера ( от 0 до всех хр за удаление) на вероятность согласия у всех
+    # time_to_find_new_worker = ArrayField(models.IntegerField(), size=2)# ranges [12, 18] in days
+    # prob_to_tfnw = models.FloatField() # вероятность что потребуется максимум из указаного в рамках времени - 0.5 # def (time_to_find_new_worker, prob_to_tfnw): np.random.binomial(len(range(time_to_find_new_worker[0], time_to_find_new_worker[1] + 1)), prob_to_tfnw) + time_to_find_new_worker[0] =  np.random.binomial(len(range(12, 18 + 1)), 0.5) + 12
+
+
+    prob_of_client_assessment = models.FloatField(default=0.1)  # биноминалка ежедневная по всем сразу # мб 88 клиентов * 10% = 8  а мб больше
+    prob_max_assesm_client = models.FloatField(default=0.8) # 0.9
+    assesment_range = ArrayField(models.IntegerField(), size=2) # 1 - 5
+    # client_assesm = get_binominal(assesment_range, prob_max_assesm_client)
+
+    prob_of_worker_fired_dir = models.FloatField(default=0.01) # помимо того что предлагают на увольнение хр по фармацептами ( собственная вероятность увольнения ) на этот  месяц
+    prob_of_worker_fired_hr = models.FloatField(default=0.05)
+    prob_of_worker_fired_am = models.FloatField(default=0.05)
+    prob_of_worker_fired_sa = models.FloatField(default=0.08)
+    prob_of_worker_fired_cl = models.FloatField(default=0.3)
+    prob_of_worker_fired_ld = models.FloatField(default=0.4)
+    prob_of_worker_fired_dr = models.FloatField(default=0.15)
+    prob_of_worker_fired_ph = models.FloatField(default=0.1) # check_on_be_fired(prob_of_worker_fired_ph)
+
+
+
     def get_simulation_day(self):
         """Сколько дней прошло с начала симуляции"""
         return (self.today - self.created_date).days
@@ -128,5 +163,9 @@ def Simulation_set_vals(sender, instance, *args, **kwargs):
         # instance.save()
 
 def get_simulation():
-    return Simulation.objects.all().last() if Simulation.objects.all().exists() else None
+    return Simulation.objects.all().last() if Simulation.objects.all().exists() else False
 
+
+# check_all_on_fired()
+# hr_checks_phs()
+# 

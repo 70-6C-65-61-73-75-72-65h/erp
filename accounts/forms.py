@@ -32,7 +32,7 @@ class WorkerForm(forms.ModelForm):
                 # ('forecast_manager', 'forecast_manager'), #  -------- не нужен, ведь система сама делает
                 ('cleaner', 'cleaner'), 
                 ('loader', 'loader'),
-                ('driver', 'driver'),
+                ('driver', 'driver'), # 0.1
                 # ('storekeeper_manager', 'storekeeper_manager'), #  -------- не нужен, так как нет склада своего
                 # ('storekeeper', 'storekeeper'), #  -------- не нужен, так как нет склада своего, а за размещение в аптеке отвечают pharmacist и loader
                 ('sys_admin', 'sys_admin'), #  2 на систему (посменно)
