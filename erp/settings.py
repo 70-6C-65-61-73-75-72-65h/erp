@@ -81,6 +81,9 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
+            'libraries':{
+                'get_item': 'general_accounting.templatetags.pool_extras',
+            }
         },
     },
 ]
@@ -94,7 +97,7 @@ WSGI_APPLICATION = 'erp.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'diplom',
+        'NAME': 'diplom3',
         'USER': 'postgres',
         'PASSWORD': '111',
         'HOST': '',
@@ -159,3 +162,5 @@ SILENCED_SYSTEM_CHECKS = [
 ]
 
 ALLOWED_HOSTS = ['0.0.0.0', '192.168.0.7', '127.0.0.1']
+
+LIST_PER_PAGE = 20

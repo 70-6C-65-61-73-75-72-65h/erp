@@ -290,3 +290,196 @@
 # to_p = [A(i) for i in range(5)]
 # [i.p() for i in to_p]
 # (i for i in a)
+
+# d  = dict_items([('acc_number', '282'), ('start_saldo_credit', 0.0), ('start_saldo_debit', 0.0), ('turnover_credit', 175953578.37200007), ('turnover_debit', 168912563.38400024), ('acc_credits_total', 175953578.37200007), ('acc_debits_total', 168912563.38400024), ('end_saldo_credit', 175953578.37200007), ('end_saldo_debit', 168912563.38400024)])
+
+# print(d)
+# print(("new_worker_cleaner_4198448233970187")[:25])
+
+# import datetime # datetime.date.today() 
+# from calendar import monthrange
+
+# def get_prev_date(date):
+#     if date.month == 1:
+#         days_in_month = monthrange((date.year-1), (date.month+11))[1]
+#     else:
+#         days_in_month = monthrange(date.year, (date.month-1))[1]
+#     day_to_pay = date - datetime.timedelta(days_in_month)
+#     return day_to_pay
+
+# def get_next_date(date):
+#     days_in_month = monthrange(date.year, date.month)[1]
+#     day_to_pay = date + datetime.timedelta(days_in_month)
+#     return day_to_pay
+
+# # d0 = get_next_date(datetime.date.today())
+# # d = get_prev_date(d0)
+# # print(d)
+# a=507124115.7618218
+# b = -3431429.3778219
+# c = -564476617.12
+# d  =561674571.204
+# print(a+b+c+d)
+
+# 500 890 640.4679999
+# # 110 339 683
+
+# a=-187225544.757384
+# b=-65059541.503384
+# c=-191700565.841822
+# d=-179874246.169822
+# # a= -187225544.757384
+# # b= -65059541.503384
+# # c= -191700565.841822
+# # d= -179874246.169822
+# # # 119 289 725
+# print((b-d)-(c-a))
+
+
+
+# class DeikstrasGraph:
+#     def __init__(self, sides):
+#         wrong_sides = [side for side in sides if len(side) not in [2, 3]]
+#         assert len(wrong_sides != 0), ValueError(f'Error! Info about wrong sides: {wrong_sides}')
+#         self.sides = [make_sides(*side) for side in sides]
+#         self.nodes = set(sum(([side.start, side.end] for side in self.sides), []))
+#         self.neighbours = {node: set() for node in self.nodes}
+#         [self.neighbours[side.start].add((side.end, side.cost)) for side in self.sides]
+
+
+
+# def deikstras_algorithm(self, start, end):
+#     assert start in self.nodes, 'Error! There no start node like that!'
+#     intervals = {node: infinity for node in self.nodes}
+#     previous_node = {node: None for node in self.nodes}
+#     intervals[start] = 0
+#     nodes = self.nodes.copy()
+#     while nodes:
+#         actual_node = min(list(map(lambda node: intervals[node], nodes)))
+#         nodes.remove(actual_node)
+#         if intervals[actual_node] == infinity:
+#             break
+#         for neighbour, cost in self.neighbours[actual_node]:
+#             alternative_route = intervals[actual_node] + cost
+#             if alternative_route < intervals[neighbour]:
+#                 intervals[neighbour] = alternative_route
+#                 previous_nodes[neighbour] = actual_node
+#     path, actual_node = deque(), end
+#     while previous_nodes[actual_node] is not None:
+#         actual_node = previous_nodes[actual_nodes]
+#         path.appendleft(actual_node)
+#     path.appendleft(actual_node) if path else None
+#     return (path, intervals[end]) 
+
+
+
+
+# import numpy as np
+# import matplotlib.pyplot as plt
+
+# x = np.linspace(0, 10, 100)
+# y = np.sin(x)
+
+# fig, ax = plt.subplots()
+# line, = ax.plot(x, y, color='k')
+
+# for n in range(len(x)):
+#     line.set_data(x[:n], y[:n])
+#     ax.axis([0, 10, 0, 1])
+#     fig.canvas.draw()
+#     fig.savefig('Frame0.png')
+    # fig.savefig('Frame%03d.png' %n)
+
+
+
+
+
+# import numpy as np
+# import matplotlib.pyplot as plt
+# import matplotlib.animation as animation
+
+# x = np.linspace(0, 10, 100)
+# y = np.sin(x)
+
+# fig, ax = plt.subplots()
+# line, = ax.plot(x, y, color='k')
+
+# def update(num, x, y, line):
+#     line.set_data(x[:num], y[:num])
+#     line.axes.axis([0, 10, 0, 1])
+#     return line,
+
+# ani = animation.FuncAnimation(fig, update, len(x), fargs=[x, y, line],
+#                               interval=25, blit=True)
+# ani.save('test.gif')
+# plt.show()
+
+
+
+
+    
+# import numpy as np
+# import matplotlib.pyplot as plt
+
+# def draw(x, y):
+
+#     # x = np.linspace(0, 10, 100)
+#     # y = np.sin(x)
+
+#     fig, ax = plt.subplots()
+#     line, = ax.plot(x, y, color='k')
+
+#     # for n in range(len(x)):
+#     line.set_data(x, y)
+#     ax.axis([0, 10, 0, 10])
+#     fig.canvas.draw()
+#     fig.savefig('Frame0.png')
+
+
+
+
+# [draw(i, i) for i in range(1, 10)]
+
+import datetime 
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib
+
+val_list = [0, 2, 2, 1, 4]
+d_list = [datetime.date(2020, 6, 11), datetime.date(2020, 6, 12), datetime.date(2020, 6, 13), datetime.date(2020, 6, 14), datetime.date(2020, 6, 15)] 
+val_max = 4 
+d_max = datetime.date(2020, 6, 15)
+
+# fig, ax = plt.subplots()
+# line, = ax.plot(val_list, d_list, color='k')
+
+# for x, y in zip(val_list, d_list):
+#     print(x, y)
+#     line.set_data(x, y)
+# fig, ax = plt.subplots()
+# dates = matplotlib.dates.date2num(d_list)
+# line, = ax.plot_date(dates, val_list, color='k')
+# # plt.plot_date(dates, val_list)
+
+# # ax.axis([0, val_max, d_list[0], d_max])
+# fig.canvas.draw()
+# fig.savefig('Frame10.png')
+
+# make up some data
+x = d_list
+y = val_list
+
+# plot
+plt.plot(x,y)
+# beautify the x-labels
+plt.gcf().autofmt_xdate()
+plt.savefig('Frame10.png')
+
+# plt.show()
+
+# d1 = datetime.date.today() - datetime.timedelta(5)
+# d2 = datetime.date.today() - datetime.timedelta(2)
+# d3 = datetime.date.today() - datetime.timedelta(3)
+# d4 = datetime.date.today() - datetime.timedelta(4)
+# print(max(d1, d2, d3, d4))
+# print(datetime.date.today())

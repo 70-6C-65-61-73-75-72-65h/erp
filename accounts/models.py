@@ -23,6 +23,7 @@ from mixins.models import Address, MyDateField
 
 # Create your models here.
 class Profile(models.Model): # fields
+    # created = MyDateField(auto_now_add=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     bio = models.TextField(blank=True, null=True)
     # location = models.CharField(max_length=30, blank=True)
@@ -246,8 +247,8 @@ class Profile(models.Model): # fields
 
    
     def __str__(self):
-        return f'profile {self.user.username}'
-        # Instance of 'OneToOneField' has no 'username' memberpylint(no-member) - pep-пиздеж
+        pname = (self.user.username)[:20]
+        return f'{pname}'
 
     # @property
     # def get_absolute_url(self):
@@ -523,18 +524,15 @@ class Worker(models.Model):
     profile = models.OneToOneField(Profile, on_delete=models.SET_NULL, related_name='worker', null=True) # 
     address = models.OneToOneField(Address, on_delete=models.CASCADE, related_name='worker')
     kind = models.CharField(max_length=100) # setting in form with casees (HR, Pharmacist, Cleaner ...)
-    salary = models.FloatField(default=0.0)# как таковой пересылки на счет нет, подсчитывается пока в селерипеймент все скопом кучей - ибо толку то - все равно мы послать на счет не сможем
+    salary = models.FloatField(default=0.0)
     birth_date = models.DateField(null=True, blank=True)
-    # salary .... birth_date (mb from profile) and so on
     prob_of_worker_fired = models.FloatField(default=0.0)
-    # work_on_wh = models.ForeignKey("company_operations.WareHouse", on_delete=models.SET_NULL, related_name='workers', null=True) # if not only by ids gonna be deleteed / but assesment тоже только по ид а не по аптекам
-    # work_on_vehicle = models.ForeignKey("company_operations.Vehicle", on_delete=models.SET_NULL, related_name='workers', null=True) 
-    # work_on_dpt = models.ForeignKey("company_operations.Department", on_delete=models.SET_NULL, related_name='workers', null=True)
     work_on_wh = models.BooleanField(default=False)
     work_on_vehicle = models.BooleanField(default=False)
     work_on_dpt = models.BooleanField(default=False)
     id_workon_place = models.IntegerField()
     fired = models.BooleanField(default=False)
+
 
 @receiver(pre_save, sender=Worker)
 def pre_save_Worker(sender, instance, *args, **kwargs):
@@ -542,37 +540,34 @@ def pre_save_Worker(sender, instance, *args, **kwargs):
         sim = get_simulation()
         if instance.kind == 'HR':
             instance.prob_of_worker_fired = sim.prob_of_worker_fired_hr
-            instance.work_on_dpt = True#apps.get_model('company_operations.Department').objects.get(id=instance.id_workon_place)
+            instance.work_on_dpt = True
         elif instance.kind == 'accounting_manager':
             instance.prob_of_worker_fired = sim.prob_of_worker_fired_am
-            instance.work_on_dpt = True#apps.get_model('company_operations.Department').objects.get(id=instance.id_workon_place)
+            instance.work_on_dpt = True
         elif instance.kind == 'pharmacist':
             instance.prob_of_worker_fired = sim.prob_of_worker_fired_ph
-            instance.work_on_wh = True#apps.get_model('company_operations.WareHouse').objects.get(id=instance.id_workon_place)
+            instance.work_on_wh = True
         elif instance.kind == 'director':
             instance.prob_of_worker_fired = sim.prob_of_worker_fired_dir
-            instance.work_on_dpt = True#apps.get_model('company_operations.Department').objects.get(id=instance.id_workon_place)
+            instance.work_on_dpt = True
         elif instance.kind == 'cleaner':
             instance.prob_of_worker_fired = sim.prob_of_worker_fired_cl
-            instance.work_on_wh = True#apps.get_model('company_operations.WareHouse').objects.get(id=instance.id_workon_place)
+            instance.work_on_wh = True
         elif instance.kind == 'loader':
             instance.prob_of_worker_fired = sim.prob_of_worker_fired_ld
-            instance.work_on_vehicle = True#apps.get_model('company_operations.Vehicle').objects.get(id=instance.id_workon_place)
+            instance.work_on_vehicle = True
         elif instance.kind == 'driver':
             instance.prob_of_worker_fired = sim.prob_of_worker_fired_dr
-            instance.work_on_vehicle = True#apps.get_model('company_operations.Vehicle').objects.get(id=instance.id_workon_place)
+            instance.work_on_vehicle = True
         elif instance.kind == 'sys_admin':
             instance.prob_of_worker_fired = sim.prob_of_worker_fired_sa
-            instance.work_on_dpt = True#apps.get_model('company_operations.Department').objects.get(id=instance.id_workon_place)
+            instance.work_on_dpt = True
 
 
 class Client(models.Model):
     profile = models.OneToOneField(Profile, on_delete=models.SET_NULL, related_name='client', null=True)
-    # wh = models.ForeignKey("company_operations.WareHouse", on_delete=models.SET_NULL, related_name='clients', null=True)
 
     def make_assessment(self, assess, worker, pharmacy):
-        # не отталкиваемся от сейлов а просто ежедневно проверка на оценку от пользователя  - биноминальное распр по к-ву клиентов которые сегодня сделают оценку в 
-        # assess = 
         sim = get_simulation()
         apps.get_model('assessments.Assessment').objects.create(assess=assess, worker=worker, pharmacy=pharmacy, client=self, created=sim.today)
     # address = models.OneToOneField(Address, on_delete=models.CASCADE, related_name='client')
@@ -598,5 +593,3 @@ class Client(models.Model):
 
 # # class ProfileClient()
     
-
-# pep-пиздежа: 4 

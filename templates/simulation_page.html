@@ -20,6 +20,14 @@
         <hr>
         <p><a href="{% url 'simulation:simulate' 'disable' %}" class="btn btn-danger" role="button">Stop Simulation</a></p>
     {% endif %}
+    <hr>
+    <p><a href="{% url 'company_operations:list_of_hfcs' %}">Go watch HFC Lists</a></p>
+    <hr>
+    <p><a href="{% url 'general_accounting:accounting_main_page' %}">Go watch General Accounting</a></p>
+    <hr>
+    <p><a href="{% url 'company_operations:inventory_tracking_wht_delivery' %}">Get WareHouse Transfer tracking data</a></p>
+    <hr>
+    <p><a href="{% url 'company_operations:inventory_tracking_purchase_delivery' %}">Get Purchase Transfer tracking data</a></p>
 {% endif %}
 </div>
 {% endblock content %}

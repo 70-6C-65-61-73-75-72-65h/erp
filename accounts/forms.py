@@ -2,7 +2,7 @@ from django import forms
 
 from pagedown.widgets import PagedownWidget
 
-from .models import Profile, Worker, Vendor
+from .models import Profile, Worker, Vendor, Client
 
 class ProfileForm(forms.ModelForm):
     """ called only for update """
@@ -14,6 +14,8 @@ class ProfileForm(forms.ModelForm):
             "bio",
             # "location",
             "birth_date", # user.username \\ user.last_name \\ user.first_name \\ user.password
+            'user',
+            'bank_acc',
         ]
 
 
@@ -21,34 +23,57 @@ class WorkerForm(forms.ModelForm):
     class Meta:
         model = Worker
         fields = [
+            "profile",
+            "address",
             "kind",
+            "work_on_wh",
+            "work_on_vehicle",
+            "work_on_dpt",
+            "salary",
+            "fired",
         ]
-        KIND_CHOICES = (
-                ('', 'Select the kind'),
-                ('pharmacist', 'pharmacist'), #First one is the value of select option and second is the displayed value in option
-                ('HR', 'HR'),
-                ('accounting_manager', 'accounting_manager'), #  достаточно 1-го на все предприятие, ведь система сама все балансы показывает
-                ('director', 'director'),
-                # ('forecast_manager', 'forecast_manager'), #  -------- не нужен, ведь система сама делает
-                ('cleaner', 'cleaner'), 
-                ('loader', 'loader'),
-                ('driver', 'driver'), # 0.1
-                # ('storekeeper_manager', 'storekeeper_manager'), #  -------- не нужен, так как нет склада своего
-                # ('storekeeper', 'storekeeper'), #  -------- не нужен, так как нет склада своего, а за размещение в аптеке отвечают pharmacist и loader
-                ('sys_admin', 'sys_admin'), #  2 на систему (посменно)
-                # ('supply_chain_manager', 'supply_chain_manager'), #  -------- не нужен, ведь система сама делает
-                )
-        widgets = {
-            'kind': forms.Select(choices=KIND_CHOICES, attrs={'class': 'form-control'}),
-        }
+        # {self.profile.user.username}\n Address: {self.address.full_address}\n Kind: {self.kind}\n Work on: {workon}\nGet salary:{self.salary}\n Status: {fired}"
+
+        # fields = [
+        #     "kind",
+        # ]
+        # KIND_CHOICES = (
+        #         ('', 'Select the kind'),
+        #         ('pharmacist', 'pharmacist'), #First one is the value of select option and second is the displayed value in option
+        #         ('HR', 'HR'),
+        #         ('accounting_manager', 'accounting_manager'), #  достаточно 1-го на все предприятие, ведь система сама все балансы показывает
+        #         ('director', 'director'),
+        #         # ('forecast_manager', 'forecast_manager'), #  -------- не нужен, ведь система сама делает
+        #         ('cleaner', 'cleaner'), 
+        #         ('loader', 'loader'),
+        #         ('driver', 'driver'), # 0.1
+        #         # ('storekeeper_manager', 'storekeeper_manager'), #  -------- не нужен, так как нет склада своего
+        #         # ('storekeeper', 'storekeeper'), #  -------- не нужен, так как нет склада своего, а за размещение в аптеке отвечают pharmacist и loader
+        #         ('sys_admin', 'sys_admin'), #  2 на систему (посменно)
+        #         # ('supply_chain_manager', 'supply_chain_manager'), #  -------- не нужен, ведь система сама делает
+        #         )
+        # widgets = {
+        #     'kind': forms.Select(choices=KIND_CHOICES, attrs={'class': 'form-control'}),
+        # }
 
 class VendorForm(forms.ModelForm):
     class Meta:
         model = Vendor
         fields = [
             "organisation",
+            "profile",
+            "address",
         ]
+        # fields = [
+        #     "organisation",
+        # ]
 
+class ClientForm(forms.ModelForm):
+    class Meta:
+        model = Client
+        fields = [
+            "profile"
+        ]
 
 from django.contrib.auth import (
     authenticate,

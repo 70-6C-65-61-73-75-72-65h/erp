@@ -1,5 +1,6 @@
 from django.db import models
 import simulation.models as sim
+import datetime
 # from django.contrib.auth.models import User
 # from django.db.models.signals import post_save, pre_save
 # from django.dispatch import receiver
@@ -40,14 +41,17 @@ class Address(models.Model):
 
 
     def __str__(self):
-        return self.full_address
+        return self.city
 
 
 class MyDateField(models.DateField):
     # nihuya ne fact
     def pre_save(self, model_instance, add):
         if self.auto_now or (self.auto_now_add and add):
-            value = sim.get_simulation().today
+            if sim.get_simulation() is not None:
+                value = sim.get_simulation().today
+            else:
+                value = datetime.date.today()
             setattr(model_instance, self.attname, value)
             return value
         else:

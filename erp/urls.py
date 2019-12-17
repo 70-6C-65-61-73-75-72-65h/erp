@@ -27,6 +27,7 @@ urlpatterns = [
     url(r'^simulation/', include(('simulation.urls', 'simulation'), namespace='simulation')),
     url(r'^accounts/', include(('accounts.urls', 'accounts'), namespace='accounts')),
     url(r'^general_accounting/', include(('general_accounting.urls', 'general_accounting'), namespace='general_accounting')),
+    url(r'^company_operations/', include(('company_operations.urls', 'company_operations'), namespace='company_operations')),
 ]
 
 

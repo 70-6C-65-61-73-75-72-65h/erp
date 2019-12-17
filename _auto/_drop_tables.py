@@ -3,6 +3,7 @@
 import psycopg2
 # import configparser
 import sys, os
+# import django
 # def dbAccess():
     # config = configparser.ConfigParser()
     # config.read('dbAccess.ini')
@@ -10,12 +11,16 @@ import sys, os
 # """
 # Drop all tables of database you given.
 # """
+
 def do():
+    # os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'erp.settings')
+    # django.setup()
+    # from django.conf import settings
     try:
         # автоматически в соответствиями с найстройками берет доступ к бд
-        dbname = 'diplom'
-        user = 'postgres'
-        password = '111'
+        dbname = 'diplom3'#settings.DATABASES['default']['NAME']
+        user = 'postgres'#settings.DATABASES['default']['USER']
+        password = '111'#settings.DATABASES['default']['PASSWORD']
         conn = psycopg2.connect(f"dbname='{dbname}' user='{user}' password='{password}'") # perFecTpRomE 
         conn.set_isolation_level(0)
     except Exception as ex:

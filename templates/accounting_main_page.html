@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 
 {% block content %}
+<hr>
+<p><a href="{% url 'simulation:simulation_page' %}">Go back to Main Simulation Page</a></p>
+<hr>
 <h1>Accounting</h1>
 <div class='container'>
 {% if not simulations_exists %}

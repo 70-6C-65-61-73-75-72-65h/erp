@@ -1,4 +1,6 @@
 from company_operations.models import perform_sale, check_WHT_arrival, check_purchase_arrival, check_Veh_repair_Payment, check_CommunalServisePayment, check_SalaryPayment
+from general_accounting.models import check_AB_report, check_TB_report
+
 
 
 # accounts_vendor
@@ -224,14 +226,45 @@ def check_on_WHTransfer(today_time):
 
 def check_purchase_transfer(today_time):
     check_purchase_arrival(today_time)
+
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# def draw(pcs, whts):
+
+#     x = np.linspace(0, 10, 100)
+#     y = np.sin(x)
+
+#     fig, ax = plt.subplots()
+#     line, = ax.plot(x, y, color='k')
+
+#     for n in range(len(x)):
+#         line.set_data(x[:n], y[:n])
+#         ax.axis([0, 10, 0, 1])
+#         fig.canvas.draw()
+#         fig.savefig('Frame0.png')
+
+
+
+
     
+     
 def main(sim):
     perform_sale(sim) # == perform_day
     check_Veh_repair_Payment()
     check_CommunalServisePayment()
     check_SalaryPayment()
 
+    check_AB_report(sim.today)
+    check_TB_report(sim.today)
+
+
     import_to_hire_check(sim)
+
+    # pc_wht_graph(sim)
+
     # check_on_perform_fire_checks(sim)
 
 

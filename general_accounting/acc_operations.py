@@ -63,11 +63,11 @@ def vehicle_repair_spends_payment(value):
 # Sale
 def sale_to_cassa(value):
     """ Покупка пользователя наличкой """
-    AD_AC(acc1=get_op_acc_by_number(311), acc2=get_op_acc_by_number(282), value=value) # 285 наценку счета не проводим ибо геморно
+    AD_AC(acc1=get_op_acc_by_number(301), acc2=get_op_acc_by_number(282), value=value) # 285 наценку счета не проводим ибо геморно
 
 def sale_to_account(value):
     """ Покупка пользователя по карте """
-    AD_PC(acc1=get_op_acc_by_number(311), acc2=get_op_acc_by_number(282), value=value)
+    AD_AC(acc1=get_op_acc_by_number(311), acc2=get_op_acc_by_number(282), value=value)
 
 # 0
 #если на аккаунте предприятия закончились бабки - пеервод из касс на аккаунты

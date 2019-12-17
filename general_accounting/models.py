@@ -5,7 +5,7 @@ from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
 import datetime # datetime.date.today() 
-
+from calendar import monthrange
 from ast import literal_eval
 # from django.utils import timezone
 from mixins.models import MyDateField
@@ -22,7 +22,7 @@ from simulation.models import get_simulation
 
 
 
-# отсюда пиздим все счета https://dtkt.com.ua/documents/dovidnyk/plan_rah/plan-r.html
+# отсюда все счета https://dtkt.com.ua/documents/dovidnyk/plan_rah/plan-r.html
 
 from django.db.models.signals import post_save, pre_save
 
@@ -358,10 +358,28 @@ def get_ab_Passives(sender, instance, *args, **kwargs):
     instance.tb = TrialBalance.objects.order_by("id").last()
 
 
+# def get_prev_date(date):
+#     if date.month == 1:
+#         days_in_month = monthrange((date.year-1), (date.month+11))[1]
+#     else:
+#         days_in_month = monthrange(date.year, (date.month-1))[1]
+#     day_to_pay = date - datetime.timedelta(days_in_month)
+#     return day_to_pay
+def get_next_date(that_month_day):
+    days_in_month = monthrange(that_month_day.year, that_month_day.month)[1]
+    day_to_pay = that_month_day + datetime.timedelta(days_in_month)
+    return day_to_pay
+
+def check_AB_report(date):
+    ab = AccountingBalance.objects.all().last()
+    if date >= get_next_date(ab.date_created): # если сег дата  более равно дате прошлого отчета + месяц
+        ab.get_report()
 
 
-
-
+def check_TB_report(date):
+    tb = TrialBalance.objects.all().last()
+    if date >= get_next_date(tb.date_created): # если сег дата  более равно дате прошлого отчета + месяц
+        tb.get_report()
 
 
 # # every that class have own chain_of_accounting

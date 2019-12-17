@@ -163,7 +163,7 @@ def Simulation_set_vals(sender, instance, *args, **kwargs):
         # instance.save()
 
 def get_simulation():
-    return Simulation.objects.all().last() if Simulation.objects.all().exists() else False
+    return Simulation.objects.all().last()# if Simulation.objects.all().exists() else False
 
 
 # check_all_on_fired()

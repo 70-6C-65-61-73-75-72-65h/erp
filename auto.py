@@ -16,7 +16,8 @@ def simulate(up=False):
 
     files = [
         'manage.py runserver 0.0.0.0:8000',
-        file_2
+        file_2,
+        'graphics.py'
     ]
     pool.map(lambda file: os.system(file), files)
     #close the pool and wait for the work to finish 

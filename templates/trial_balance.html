@@ -1,17 +1,21 @@
 {% extends "base.html" %}
-
+{% load pool_extras %}
 {% block content %}
+<hr>
+<p><a href="{% url 'simulation:simulation_page' %}">Go back to Main Simulation Page</a></p>
+<hr>
 <h1>Trial Balance</h1>
 <hr>
 <p><a href="{% url 'general_accounting:accounting_main_page' %}">Go back to Main Accounting Page</a></p>
 <hr>
 <div class='container'>
-    {{performed}}
     {% if performed %}
         <h3>start_saldo_credit: {{ start_saldo_credit }}</h3>
         <h3>start_saldo_debit: {{ start_saldo_debit }}</h3>
         <h3>end_saldo_credit: {{ end_saldo_credit }}</h3>
         <h3>end_saldo_debit: {{ end_saldo_debit }}</h3>
+        <h3>profit: {{profit}}</h3>
+        <h3>period: {{ period }}</h3>
         <h3>turnover_credit: {{ turnover_credit }}</h3>
         <h3>turnover_debit: {{ turnover_debit }}</h3>
         <hr>
@@ -22,6 +26,9 @@
                 {% for dict_key in list_dict_data_keys %}
                     <th>{{ dict_key }}</th>
                 {% endfor %}
+                </tr>
+                <tr>
+                    <th>Profit saldo</th>
                 </tr>
             </thead>
             <tbody>
@@ -35,6 +42,9 @@
                         {% endfor %}
                     </tr>
                 </div>
+                <tr>
+                    <td align="center" colspan="9">saldo difference: {{ tb_data|get_item_difference:"['end_saldo_debit','end_saldo_credit']" }}</td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>

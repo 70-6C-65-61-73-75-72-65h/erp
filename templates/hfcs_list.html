@@ -1,32 +1,25 @@
 {% extends "base.html" %}
 
 {% block content %}
+<h1>Hire Fire Checks</h1>
 <hr>
 <p><a href="{% url 'simulation:simulation_page' %}">Go back to Main Simulation Page</a></p>
-<hr>
-<h1>Accounting Balances</h1>
-<hr>
-<p><a href="{% url 'general_accounting:accounting_main_page' %}">Go back to Main Accounting Page</a></p>
 <hr>
 <div class='container'>
     {% if exists %}
         <table class="table table-hover">
             <thead>
                 <tr>
-                    <th>ID TB</th>
-                    <th>Operative Day</th>
+                    <th>ID HFC</th>
                     <th> </th>
                 </tr>
             </thead>
             <tbody>
-                {% for id, data_reported in data %}
+                {% for id in ids %}
                 <div class="list-group">
                     <tr class="table-info">
                         <td>
-                            <a href="{% url 'general_accounting:certain_ab' id %}" class='btn btn-primary btn-sm'>{{ id }}</a>
-                        </td>
-                        <td>
-                            {{ data_reported|date:"d.m.Y" }}
+                            <a href="{% url 'company_operations:certain_hfc' id %}" class='btn btn-primary btn-sm'>{{ id }}</a>
                         </td>
                     </tr>
                 </div>
@@ -35,7 +28,7 @@
         </table>
     {% else %}
     <hr>
-    <h3>There is no Accounting Balances in system ( create AB or create simulation to create AB )</h3>
+    <h3>There is no Hire Fire Checks in system ( wait till creation, cause it happened every month \\ but there is an error ceratinly)</h3>
     {% endif %}
 <div class='container'>
 {% endblock content %}

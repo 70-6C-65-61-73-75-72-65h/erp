@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Hire Fire Check</h1>
+<hr>
+<p><a href="{% url 'simulation:simulation_page' %}">Go back to Main Simulation Page</a></p>
+<hr>
+<p><a href="{% url 'company_operations:list_of_hfcs' %}">Go back to HFC Lists</a></p>
+<hr>
+<div class='container'>
+<h3>next_check: {{ next_check }}</h3>
+<hr>
+<h1>All HFC data:</h1>
+<h3>number of fired_that_month: {{num_ftm}}</h3>
+<hr>
+<h3>number of will_be_fire_next_month: {{num_wbf}}</h3>
+<hr>
+<h3>number of hired_that_month: {{num_htm}}</h3>
+<hr>
+<table class="table table-hover">
+    <thead>
+        <tr>
+            <th>Id Worker</th>
+            <th>Username</th>
+            <th>Kind</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td align="center" colspan="3">fired_that_month:</td>
+        </tr>
+        {% if fired_that_month %}
+        {% for ftm_id, fth_name, fth_kind in fired_that_month %}
+        <div class="list-group">
+            <tr class="table-info">
+                <td>
+                    {{ ftm_id }}
+                </td>
+                <td>
+                    {{ fth_name }}
+                </td>
+                <td>
+                    {{ fth_kind }}
+                </td>
+            </tr>
+        </div>
+        {% endfor %}
+        {% else %}
+        <tr>
+            <td align="center" colspan="3">No one</td>
+        </tr>
+        {% endif %}
+        <tr>
+            <td align="center" colspan="3">will_be_fire_next_month:</td>
+        </tr>
+        {% if will_be_fire_next_month %}
+        {% for wfnh_id, wfnh_name, wfnh_kind in will_be_fire_next_month %}
+        <div class="list-group">
+            <tr class="table-info">
+                <td>
+                    {{ wfnh_id }}
+                </td>
+                <td>
+                    {{ wfnh_name }}
+                </td>
+                <td>
+                    {{ wfnh_kind }}
+                </td>
+            </tr>
+        </div>
+        {% endfor %}
+        {% else %}
+        <tr>
+            <td align="center" colspan="3">No one</td>
+        </tr>
+        {% endif %}
+        <tr>
+            <td align="center" colspan="3">hired_that_month:</td>
+        </tr>
+        {% if hired_that_month %}
+        {% for htm_id, htm_name, htm_kind in hired_that_month %}
+        <div class="list-group">
+            <tr class="table-info">
+                <td>
+                    {{ htm_id }}
+                </td>
+                <td>
+                    {{ htm_name }}
+                </td>
+                <td>
+                    {{ htm_kind }}
+                </td>
+            </tr>
+        </div>
+        {% endfor %}
+        {% else %}
+        <tr>
+            <td align="center" colspan="3">No one</td>
+        </tr>
+        {% endif %}
+    </tbody>
+</table>
+<hr>
+</div>
+{% endblock content %}

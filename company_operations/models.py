@@ -39,6 +39,8 @@ import unintegrated_features.task1.algs as alg
 # nachislit_salary()
 #  /\/\after all them -> receiver create assets and passives with val
 
+# called from view on demand
+    
 
 def get_next_date():
     that_month_day = get_simulation().today
@@ -49,6 +51,7 @@ def get_next_date():
 
 # add in _up.py FireCheck.objects.create(next_check=get_next_date())
 class HireFireCheck(models.Model):
+    created = MyDateField(auto_now_add=True)
     next_check = models.DateField()
     # on_delete - нету в ManyToManyField
     fired_that_month = models.ManyToManyField(Worker, related_name='fire_check_added') # rand решение # null=True
@@ -185,6 +188,7 @@ class Purchase(models.Model):  # when needed                                    
     (where vendor is a person that dealed with us) 
     so we import its model from accounts.models
     """
+    created = MyDateField(auto_now_add=True)
     tax = models.ForeignKey(TaxRate, related_name='purchases', on_delete=models.CASCADE)
     vendor = models.ForeignKey(Vendor, related_name='purchases', on_delete=models.CASCADE)
 
@@ -344,7 +348,7 @@ def set_Purchase_vals(sender, instance, *args, **kwargs):
 def Purchase_set_A_P(sender, instance, created, **kwargs):
     # expire_day=get_simulation().today ==================== False for first creation on that Purchase instance
     if instance.purchase_claims.all().exists():# hasattr(instance, "purchase_claims"): # если есть запросы на него - незя самому сохранять - ибо тогда все клеймы которые к нему - запустятся к исполнению , а они должны запускатся на expire_day
-        # print('pizda rulyu')
+
         # print(f'in Purchase_set_A_P() exists claims: {instance.purchase_claims.all().exists()}   num claims: {instance.purchase_claims.all().count()} -> koshmar: {instance.purchase_claims.all().count()==0 and instance.purchase_claims.all().exists()}')
         # print(instance.purchase_claims.all())
         # print(instance.purchase_claims.all().exists())
@@ -406,6 +410,7 @@ class PurchaseClaim(models.Model): # when needed                               #
         quantity and whp in transfer_products()
         claim_executed - settled after PC is expire and executed in perform_purchase()
     """
+    created = MyDateField(auto_now_add=True)
     expire_day = models.DateField() # auto_now_add = created simulation day  # auto_now = updated simulation day # to add value and edit it every simulation day
     quantity = models.IntegerField()
     whp = models.ForeignKey('WHProduct', related_name='purchase_claims', on_delete=models.CASCADE)
@@ -524,7 +529,7 @@ class WHTransfer(models.Model):  # when needed                   # по 1 на �
     # to_wh =
     # quantity =
     # accepted = models.BooleanField(default=False)
-
+    created = MyDateField(auto_now_add=True)
     from_wh = models.ForeignKey('WareHouse', related_name='WHTransfers_from', on_delete=models.CASCADE) 
     to_wh = models.ForeignKey('WareHouse', related_name='WHTransfers_to', on_delete=models.CASCADE)
 
@@ -712,6 +717,7 @@ def check_WHT_arrival(today_time): # to start perform new transfers that can be 
 class WHTransferClaim(models.Model):                # експаир тут не будет, тут будет сразу отправка на пересылку меж аптеками, если найдено лишнее у других
     """ for each whp can claim """
     # чистить WHTransferClaim будем, но чтоб не удалить whp -  on_delete=models.SET_NULL
+    
     from_wh = models.ForeignKey('WareHouse', related_name='WHTransferClaims_from', on_delete=models.SET_NULL, null=True)
     to_wh = models.ForeignKey('WareHouse', related_name='WHTransferClaims_to', on_delete=models.SET_NULL, null=True)
     product = models.ForeignKey('Product', related_name='WHTransferClaims', on_delete=models.SET_NULL, null=True)
@@ -814,7 +820,7 @@ def get_WHTransferClaim_accepttion(whtcs):
             quantity = sum(i.quantity for i in whtc_wh_pair)
             # print(f'get_WHTransferClaim_accepttion {quantity} number to dispatch')
             if quantity >= get_simulation().number_to_dispatch:
-                print(f'get_WHTransferClaim_accepttion {from_wh} to {to_wh} are {quantity} products dispatched')
+                # print(f'get_WHTransferClaim_accepttion {from_wh} to {to_wh} are {quantity} products dispatched')
                 # print(f'\n Inside get_WHTransferClaim_accepttion() before WHTransfer.objects.create {from_wh} and {to_wh} with  claims: {whtc_wh_pair}\n')
                 WHTransferClaim.objects.filter(from_wh=from_wh, to_wh=to_wh, executed=False).update(accepted=True) #  и отсюда прямиком в трансфер WHTransfer ( при его проверке в конце каждого дня )
                 # если мы уже подтвердили что будут продукты отсылатся, то мы их не считаем за свои
@@ -847,9 +853,9 @@ def get_WHTransferClaim_accepttion(whtcs):
                 # /\/\ TODO ERROR from_wh == to_wh
                 # заранее делаем executed=True - чтоб изи в WHTransfer искать - не стоит и так по executed там нет фильтров в WHTransfer
                 # WHTransferClaim.objects.filter(from_wh=from_wh, to_wh=to_wh, accepted=False, executed=False).update(executed=True)
-                print('before WHTransfer.objects.create')
+                # print('before WHTransfer.objects.create')
                 WHTransfer.objects.create(from_wh=from_wh, to_wh=to_wh) # WHTransferClaim.objects.filter(from_wh=from_wh, to_wh=to_wh, accepted=True)
-                print('after WHTransfer.objects.create')
+                # print('after WHTransfer.objects.create')
             # вообще все что проверились меж аптеками - executed
             WHTransferClaim.objects.filter(from_wh=from_wh, to_wh=to_wh, executed=False).update(executed=True)
 
@@ -874,7 +880,7 @@ def set_transfer_products(): # one time in 4 week normally should expire 28 / 7
     # from_wh_s = [[] for i in range(len(whps_from_WHTransferClaim))]
     # to_wh_s = []
     if not set(whps_from_WHTransferClaim).isdisjoint(set(whps_to_WHTransferClaim)):
-        print('\n\npizda')
+
         print(set(whps_from_WHTransferClaim) & set(whps_to_WHTransferClaim))
         print('\n\n')
     for whp1 in whps_from_WHTransferClaim: 
@@ -942,6 +948,7 @@ class Sale(models.Model): # every day                                   # for ev
 
     # # substituted by random day_quantity_range
     # quantity_rate_per_day = models.FloatField(default=0.0) # для рандома при покупках за сутки
+    created = MyDateField(auto_now_add=True)
     min_day_quantity = models.IntegerField()
     max_day_quantity = models.IntegerField()
     percent_pre_buy = ArrayField(models.FloatField(), size=2)
@@ -1063,7 +1070,7 @@ def get_clients_assessments(sim):
         to_worker = random.choice(workers)
         # print(f'place: {to_worker.id_workon_place}')
         w_pharmacy = WareHouse.objects.get(id=to_worker.id_workon_place)
-        assess  = get_binominal([sim.assesment_range[0], sim.assesment_range[1]+1], sim.prob_max_assesm_client)
+        assess  = get_binominal([sim.assesment_range[0], sim.assesment_range[1]], sim.prob_max_assesm_client)
         cl_to_asses.make_assessment(assess, to_worker, w_pharmacy) # а потом биноминальо решаем какую оценку он поставит
 
 

@@ -6,7 +6,7 @@ from django.urls import reverse_lazy
 from simulation.models import get_simulation
 
 def accounting_main_page(request):
-    if get_simulation() is not False:
+    if get_simulation() is not None:
         simulations_exists = True
     context = {
         "simulations_exists": simulations_exists
@@ -73,12 +73,14 @@ def certain_tb(request, id):
             list_dict_data = tb.get_dicts_of_accs()
             list_dict_data_keys = [key for key in (list_dict_data[0]).keys()]
             context = {
+                "period": tb.period,
                 "list_dict_data": list_dict_data,
                 "list_dict_data_keys": list_dict_data_keys,
                 "start_saldo_credit": tb.start_saldo_credit,
                 "start_saldo_debit": tb.start_saldo_debit,
                 "end_saldo_debit": tb.end_saldo_debit,
                 "end_saldo_credit": tb.end_saldo_credit,
+                "profit": ((tb.end_saldo_debit-tb.start_saldo_debit)-(tb.end_saldo_credit-tb.start_saldo_credit)),
                 "turnover_credit": tb.turnover_credit,
                 "turnover_debit": tb.turnover_debit,
                 "performed": True
@@ -157,12 +159,14 @@ def get_trial_balance(request):
         list_dict_data = tb.get_dicts_of_accs()
         list_dict_data_keys = [key for key in (list_dict_data[0]).keys()]
         context = {
+            "period": tb.period,
             "list_dict_data": list_dict_data,
             "list_dict_data_keys": list_dict_data_keys,
             "start_saldo_credit": tb.start_saldo_credit,
             "start_saldo_debit": tb.start_saldo_debit,
             "end_saldo_debit": tb.end_saldo_debit,
             "end_saldo_credit": tb.end_saldo_credit,
+            "profit": ((tb.end_saldo_credit-tb.start_saldo_debit)-(tb.end_saldo_credit-tb.start_saldo_credit)),
             "turnover_credit": tb.turnover_credit,
             "turnover_debit": tb.turnover_debit,
             "performed": answer
